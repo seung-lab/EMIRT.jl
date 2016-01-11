@@ -115,20 +115,22 @@ function setallroot!( djsets::Tdjsets )
 end
 
 
-typealias Tdomainlabelsizes Dict()
+type Tdomainlabelsizes
+    sizes::Dict
+end
 
 function Tdomainlabelsizes( lid=nothing, lsz=1 )
     sizes = Dict()
-    if isdefined(lid):
+    if isdefined(lid)
         sizes[lid] = lsz
     end
-    return sizes
+    return Tdomainlabelsizes(sizes)
 end
 
 
 # union dm2 to dm1, only dm1 was changed
 function union!( dm1::Tdomainlabelsizes, dm2::Tdomainlabelsizes )
-    for (lid2, sz2) in dm2:
+    for (lid2, sz2) in dm2
         if haskey(dm1, lid2)
             # have common segment id, merge together
             dm1[lid2] += sz2
@@ -147,8 +149,8 @@ function get_merge_split_errors(dm1::Tdomainlabelsizes, dm2::Tdomainlabelsizes)
     # merging and splitting error
     me = 0
     se = 0
-    for (lid1, sz1) in dm1:
-        for (lid2, sz2) in dm2:
+    for (lid1, sz1) in dm1
+        for (lid2, sz2) in dm2
             # ignore the boudaries
             if lid1>0 && lid2>0
                 if lid1==lid2
@@ -167,9 +169,9 @@ end
 
 type Tdomains
     # domain label sizes
-    dlszes::List
+    dlszes::Array{Tdomainlabelsizes, 1}
     # disjoint sets
-    djsets::Tdisjointsets
+    djsets::Tdjsets
 end
 
 function Tdomains(lbl::Array)
