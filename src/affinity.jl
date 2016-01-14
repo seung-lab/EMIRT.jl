@@ -1,62 +1,11 @@
 include( "domains.jl" )
+include("label.jl")
 
 typealias Taffmap Array{Float32,4}
 
-
-# label all the singletones as boundary
-function markbdr!( seg::Array{UInt32, 3} )
-
-    # a flag array indicating whether it is segment
-    flg = falses(seg)
-    # size
-    X,Y,Z = size(seg)
-
-    # traverse the segmentation
-    for z in 1:Z
-        for y in 1:Y
-            for x in 1:X
-                if flg[x,y,z]
-                    continue
-                end
-                if x>1 && seg[x,y,z]==seg[x-1,y,z]
-                    flg[x,  y,z] = true
-                    flg[x-1,y,z] = true
-                    continue
-                end
-                if x<X && seg[x,y,z]==seg[x+1,y,z]
-                    flg[x,  y,z] = true
-                    flg[x+1,y,z] = true
-                    continue
-                end
-                if y>1 && seg[x,y,z]==seg[x,y-1,z]
-                    flg[x,y,z] = true
-                    flg[x,y-1,z] = true
-                    continue
-                end
-                if y<Y && seg[x,y,z]==seg[x,y+1,z]
-                    flg[x,y,  z] = true
-                    flg[x,y+1,z] = true
-                end
-                if z>1 && seg[x,y,z]==seg[x,y,z-1]
-                    flg[x,y,z  ] = true
-                    flg[x,y,z-1] = true
-                    continue
-                end
-                if z<Z && seg[x,y,z]==seg[x,y,z+1]
-                    flg[x,y,z  ] = true
-                    flg[x,y,z+1] = true
-                    continue
-                end
-                # it is a singletone
-                seg[x,y,z] = 0
-            end
-        end
-    end
-end
-
-
 # transform affinity to segmentation
 function aff2seg( affs::Taffmap, dim = 3, thd = 0.5 )
+    @assert dim==2 || dim==3
     xaff = affs[:,:,:,3]
     yaff = affs[:,:,:,2]
     zaff = affs[:,:,:,1]
@@ -75,7 +24,7 @@ function aff2seg( affs::Taffmap, dim = 3, thd = 0.5 )
         for y in 1:Y
             for x in 2:X
                 if xaff[x,y,z] > thd
-                    vid1 = x + (y-1)*X + (z-1)*X*Y
+                    vid1 = x   + (y-1)*X + (z-1)*X*Y
                     vid2 = x-1 + (y-1)*X + (z-1)*X*Y
                     rid1 = find!(djsets, vid1)
                     rid2 = find!(djsets, vid2)

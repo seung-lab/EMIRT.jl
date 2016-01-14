@@ -1,3 +1,5 @@
+
+
 type Tdjsets
     sets::Array{UInt32}
     setsz::Array{UInt32}
@@ -33,6 +35,8 @@ function find!( djsets::Tdjsets, vid )
     return rid
 end
 
+# import Base.union! for extention
+import Base.union!
 function union!( djsets::Tdjsets, sid1, sid2 )
     if sid1 == sid2
         # already in the same domain
