@@ -1,3 +1,5 @@
+export add_lbl_boundary!
+
 typealias Tbdrmap Array{Float32,4}
 
 include("label.jl")

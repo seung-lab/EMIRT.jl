@@ -1,3 +1,4 @@
+export random_color_show
 using PyCall
 
 @pyimport emirt.show as emshow

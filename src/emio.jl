@@ -1,4 +1,4 @@
-
+export img2svg
 
 function img2svg( img::Array, fname::ASCIIString )
     using Compose

@@ -1,4 +1,5 @@
-
+export Tdjsets, find!, union!, markbdr!, setallroot!
+export Tdomains
 
 type Tdjsets
     sets::Array{UInt32}

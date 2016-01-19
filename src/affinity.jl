@@ -1,6 +1,8 @@
 include( "domains.jl" )
 include("label.jl")
 
+export aff2seg
+
 typealias Taffmap Array{Float32,4}
 
 # transform affinity to segmentation
