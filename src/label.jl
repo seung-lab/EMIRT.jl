@@ -1,3 +1,4 @@
+export markbdr!, relabel_seg, reassign_segid1N!
 
 typealias Tlabel Array{UInt32,3}
 
