@@ -1,16 +1,26 @@
 include( "domains.jl" )
 include("label.jl")
 
-export aff2seg
+export aff2seg, exchangeaffxz!
 
 typealias Taffmap Array{Float32,4}
+
+# exchang X and Z channel of affinity
+function exchangeaffxz!(affs::Taffmap)
+    taffx = deepcopy(affs[:,:,:,1])
+    affs[:,:,:,1] = deepcopy(affs[:,:,:,3])
+    affs[:,:,:,3] = taffx
+    return affs
+end
 
 # transform affinity to segmentation
 function aff2seg( affs::Taffmap, dim = 3, thd = 0.5 )
     @assert dim==2 || dim==3
-    xaff = affs[:,:,:,3]
+    # note that should be column major affinity map
+    # the znn V4 output is row major!!! should exchangeaffxz first!
+    xaff = affs[:,:,:,1]
     yaff = affs[:,:,:,2]
-    zaff = affs[:,:,:,1]
+    zaff = affs[:,:,:,3]
 
     # number of voxels in segmentation
     N = length(xaff)

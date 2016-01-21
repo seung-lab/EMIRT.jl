@@ -3,7 +3,7 @@ using Watershed
 export wsseg2d, watershed, mergert!
 
 function wsseg2d(affs, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100, thd_rt=0.5)
-    seg = zeros(Array{UInt32,3}, size(affs(:,:,:,1)) )
+    seg = zeros(UInt32, size(affs)[1:3] )
     for z in 1:size(affs,3)
         seg[:,:,z], rt = watershed(affs[:,:,z,:], low, high, thresholds, dust_size)
         mergert!(seg[:,:,z], rt, thd_rt)
