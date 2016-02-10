@@ -1,7 +1,7 @@
 include( "domains.jl" )
 include("label.jl")
 
-export aff2seg, exchangeaffxz!
+export aff2seg, exchangeaffxz!, uniform_transformation
 
 typealias Taffmap Array{Float32,4}
 
@@ -87,4 +87,22 @@ function aff2seg( affs::Taffmap, dim = 3, thd = 0.5 )
     seg = reshape(seg, size(xaff) )
     markbdr!( seg )
     return seg
+end
+
+function uniform_transformation(x)
+    tp = typeof(x)
+    sz = size(x)
+    # flatten the array
+    x = x[:]
+    # get the indices
+    idx = sortperm( sortperm(x) )
+
+    # generating values
+    v = linspace(0, 1, length(x))
+    # making new array
+    v = v[idx]
+    v = reshape(v, sz)
+#    v = tp( v )
+
+    return v
 end
