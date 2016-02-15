@@ -1,6 +1,6 @@
 using Watershed
 
-export wsseg2d, watershed, mergert!
+export wsseg2d, watershed, mergert!, mergert
 
 function wsseg2d(affs, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100, thd_rt=0.5)
     seg = zeros(UInt32, size(affs)[1:3] )
@@ -21,45 +21,40 @@ function watershed(affs, low=0.3, high=0.9, thresholds=[(256, 0.3)], dust_size=1
     return (seg, rt)
 end
 
-function mergert!(tp::Tuple{Array{UInt32,3},Array{Any,1}}, thd=0.5)
-    seg, rt = tp
-    mergert!(seg, rt, thd)
+function mergert(seg, rt, thd=0.5)
+    # the returned segmentation
+    ret = deepcopy(seg)
+    mergert!(ret, rt, thd)
+    return ret
 end
 
 function mergert!(seg, rt, thd=0.5)
-    # get the ralative root dict
-    rd = Dict()
+    # get the ralative parent dict
+    pd = Dict()
     # initialized as children and parents
     for t in rt
-        a, p, c = t
-        rd[c] = (p, a)
+        a, c, p = t
+        @assert p>0 && c>0
+        pd[c] = (p, a)
     end
 
     # get the relative root id
+    # dictionary of root id
+    rd = Dict()
     for t in rt
         # get affinity and segment IDs of parent and child
-        a, p, c = t
-        # since the rt is descending ordered
-        if a < thd
-            break
-        end
+        a, c, p = t
 
         # find the real root
         path = []
-        while a >= thd
-            p = rd[c][1]
-            if p == c
-                # reach a root
-                break
-            end
-            # print("a: $a, c: $c, p: $p ;")
-
+        while a >= thd && p!=c
             # record path for path compression
-            push!(path, p)
-            # reset the child
+            push!(path, c)
+            # reset the child as parent
             c = p
-            if haskey(rd, p)
-                a = rd[p][2]
+            # next pair of child and parent
+            if haskey(pd, p)
+                a = pd[p][2]
             else
                 break
             end
@@ -70,11 +65,14 @@ function mergert!(seg, rt, thd=0.5)
         end
     end
 
+    #println("root dict: $rd")
     # set the segment id as relative root id
-    for v in seg
+    for i in eachindex(seg)
+        v = seg[i]
         if haskey(rd, v)
-            v = rd[v][1]
+            root = rd[v][1]
+            println("root: $(UInt64(root))")
+            seg[i] = root
         end
     end
-    return seg
 end
