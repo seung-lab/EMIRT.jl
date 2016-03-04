@@ -8,5 +8,5 @@ include("emio.jl")
 include("label.jl")
 include("evaluate.jl")
 include("watershed.jl")
-
+include("configparser")
 end
