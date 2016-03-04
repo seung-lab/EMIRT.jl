@@ -1,7 +1,6 @@
-export markbdr!, relabel_seg, reassign_segid1N!
+export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!
 
 typealias Tlabel Array{UInt32,3}
-
 
 # label all the singletones as boundary
 function markbdr!( seg::Tlabel )
@@ -154,4 +153,65 @@ function reassign_segid1N!( lbl::Tlabel )
         end
     end
     return lbl
+end
+
+# add boundary between contacting segments
+function add_lbl_boundary!(lbl::Array, conn=8)
+    # neighborhood definition
+    @assert conn==8 || conn==4
+    sx,sy,sz = size(lbl)
+    for z = 1:sz
+        for y = 1:sy
+            for x = 1:sx
+                if lbl[x,y,z]==0
+                    # ignore the existing boundary
+                    continue
+                end
+                # flag of central pixel
+                cf = false
+                # x direction
+                if x<sx && lbl[x+1,y,z]>0 && lbl[x,y,z]!=lbl[x+1,y,z]
+                    cf = true
+                    lbl[x+1,y,z] = 0
+                end
+                # y direction
+                if y<sy && lbl[x,y+1,z]>0 && lbl[x,y,z]!=lbl[x,y+1,z]
+                    cf = true
+                    lbl[x,y+1,z] = 0
+                end
+                if x>1 && lbl[x-1,y,z]>0 && lbl[x,y,z]!=lbl[x-1,y,z]
+                    cf = true
+                    lbl[x-1,y,z] = 0
+                end
+                if y>1 && lbl[x,y-1,z]>0 && lbl[x,y,z]!=lbl[x,y-1,z]
+                    cf = true
+                    lbl[x,y-1,z] = 0
+                end
+
+                if conn==8
+                    if x<sx && y<sy && lbl[x+1,y+1,z]>0 && lbl[x,y,z]!=lbl[x+1,y+1,z]
+                        cf = true
+                        lbl[x+1,y+1,z] = 0
+                    end
+
+                    if x>1 && y<sy && lbl[x-1,y+1,z]>0 && lbl[x,y,z]!=lbl[x-1,y+1,z]
+                        cf = true
+                        lbl[x-1,y+1,z] = 0
+                    end
+                    if x<sx && y>1 && lbl[x+1,y-1,z]>0 && lbl[x,y,z]!=lbl[x+1,y-1,z]
+                        cf = true
+                        lbl[x+1,y-1,z] = 0
+                    end
+                    if x>1 && y>1 && lbl[x-1,y-1,z]>0 && lbl[x,y,z]!=lbl[x-1,y-1,z]
+                        cf = true
+                        lbl[x-1,y-1,z] = 0
+                    end
+                end
+                if cf
+                    print("$x,$y, ")
+                    lbl[x,y,z] = 0
+                end
+            end
+        end
+    end
 end

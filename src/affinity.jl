@@ -1,12 +1,13 @@
 include( "domains.jl" )
 include("label.jl")
 
-export aff2seg, exchangeaffxz!, uniform_transformation
+export aff2seg, exchangeaffxz!, aff2uniform, affs2uniform!
 
-typealias Taffmap Array{Float32,4}
+typealias Taffs Array{Float32,4}
 
 # exchang X and Z channel of affinity
-function exchangeaffxz!(affs::Taffmap)
+function exchangeaffxz!(affs::Taffs)
+    println("exchange x and z of affinity map")
     taffx = deepcopy(affs[:,:,:,1])
     affs[:,:,:,1] = deepcopy(affs[:,:,:,3])
     affs[:,:,:,3] = taffx
@@ -14,7 +15,7 @@ function exchangeaffxz!(affs::Taffmap)
 end
 
 # transform affinity to segmentation
-function aff2seg( affs::Taffmap, dim = 3, thd = 0.5 )
+function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
     @assert dim==2 || dim==3
     # note that should be column major affinity map
     # the znn V4 output is row major!!! should exchangeaffxz first!
@@ -89,7 +90,7 @@ function aff2seg( affs::Taffmap, dim = 3, thd = 0.5 )
     return seg
 end
 
-function uniform_transformation(x)
+function aff2uniform(x)
     tp = typeof(x)
     sz = size(x)
     # flatten the array
@@ -102,7 +103,14 @@ function uniform_transformation(x)
     # making new array
     v = v[idx]
     v = reshape(v, sz)
-#    v = tp( v )
+    v = tp( v )
 
     return v
+end
+
+function affs2uniform!(affs::Taffs)
+    println("transfer to uniform distribution...")
+    for z in 1:size(affs,3)
+        affs[:,:,z,:] = aff2uniform( affs[:,:,z,:] )
+    end
 end

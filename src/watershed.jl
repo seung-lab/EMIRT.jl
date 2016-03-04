@@ -2,7 +2,8 @@ using Watershed
 
 export wsseg2d, watershed, mergert!, mergert
 
-function watershed(affs, low=0.3, high=0.9, thresholds=[(256, 0.3)], dust_size=100)
+function watershed(affs, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100)
+    println("watershed, low: $low, high: $high")
     sag = steepestascent(affs, low, high)
     divideplateaus!(sag)
     (seg, counts, counts0) = findbasins(sag)
