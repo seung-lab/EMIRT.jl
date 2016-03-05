@@ -90,13 +90,13 @@ function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
     return seg
 end
 
-function aff2uniform(x)
+function aff2uniform(x, alg=MergeSort)
     tp = typeof(x)
     sz = size(x)
     # flatten the array
     x = x[:]
     # get the indices
-    idx = sortperm( sortperm(x) )
+    idx = sortperm( sortperm(x, alg=alg), alg=alg )
 
     # generating values
     v = linspace(0, 1, length(x))
@@ -110,7 +110,9 @@ end
 
 function affs2uniform!(affs::Taffs)
     println("transfer to uniform distribution...")
-    for z in 1:size(affs,3)
-        affs[:,:,z,:] = aff2uniform( affs[:,:,z,:] )
+    for c in 1:size(affs,4)
+        for z in 1:size(affs,3)
+            affs[:,:,z,c] = aff2uniform( affs[:,:,z,c] )
+        end
     end
 end

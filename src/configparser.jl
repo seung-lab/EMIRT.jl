@@ -1,28 +1,42 @@
 export configparser
 
-function str2list(s)
-    ret = Array
-    for e in split(s, ',')
-        append!(ret, parse(e))
+function eparse(s)
+    if contains(s, "/") || typeof(parse(s))==Symbol
+        # directory or containing alphabet not all number
+        return s
+    else
+        return parse(s)
     end
+end
+
+function str2list(s)
+    ret = []
+    for e in split(s, ',')
+        append!(ret, [eparse(e)])
+    end
+    return ret
 end
 
 function str2array(s)
-    ret = Array
+    ret = []
     for r in split(s, ';')
-        append!(ret, str2list(r))
+        t = str2list(r)
+        if length(t)>0
+            append!(ret, collect(t))
+        end
     end
+    return ret
 end
 
 # auto conversion of string
-function str2auto(s)
-    if contains(s, ';')
+function autoparse(s)
+    if contains(s, ";")
         return str2array(s)
-    elseif contains(s, ',')
+    elseif contains(s, ",")
         return str2list(s)
     else
         # automatic transformation
-        return parse(s)
+        return eparse(s)
     end
 end
 
@@ -38,7 +52,7 @@ function configparser(fconf::ASCIIString)
     sec = "section"
     # analysis the lines
     for l in lines
-        if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n")
+        if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
             continue
         elseif ismatch(r"^\s*\[.*\]", l)
             # update the section name
@@ -49,8 +63,10 @@ function configparser(fconf::ASCIIString)
             k, v = split(l, '=')
             k = replace(k, " ", "")
             v = replace(v, " ", "")
+            v = replace(v, "\n", "")
             # assign value to dictionary
-            pd[sec][k] = v
+            pd[sec][k] = autoparse( v )
         end
     end
+    return pd
 end
