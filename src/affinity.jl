@@ -1,12 +1,12 @@
 include( "domains.jl" )
 include("label.jl")
 
-export aff2seg, exchangeaffxz!, aff2uniform, affs2uniform!
+export aff2seg, exchangeaffsxz!, arr2uniform, affs2uniform!
 
 typealias Taffs Array{Float32,4}
 
 # exchang X and Z channel of affinity
-function exchangeaffxz!(affs::Taffs)
+function exchangeaffsxz!(affs::Taffs)
     println("exchange x and z of affinity map")
     taffx = deepcopy(affs[:,:,:,1])
     affs[:,:,:,1] = deepcopy(affs[:,:,:,3])
@@ -90,7 +90,7 @@ function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
     return seg
 end
 
-function aff2uniform(x, alg=MergeSort)
+function arr2uniform(x, alg=MergeSort)
     tp = typeof(x)
     sz = size(x)
     # flatten the array
@@ -110,9 +110,7 @@ end
 
 function affs2uniform!(affs::Taffs)
     println("transfer to uniform distribution...")
-    for c in 1:size(affs,4)
-        for z in 1:size(affs,3)
-            affs[:,:,z,c] = aff2uniform( affs[:,:,z,c] )
-        end
+    for z in 1:size(affs,3)
+        affs[:,:,z,:] = arr2uniform( affs[:,:,z,:] )
     end
 end
