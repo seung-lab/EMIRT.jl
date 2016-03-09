@@ -4,7 +4,7 @@ using PyCall
 
 export img2svg, imread, imsave
 
-function imread(fname::ASCIIString)
+function imread(fname)
     if contains(fname, ".h5") || contains(fname, ".hdf5")
         return h5read(fname, "/main")
     elseif contains(fname, ".tif")
@@ -17,7 +17,7 @@ function imread(fname::ASCIIString)
     end
 end
 
-function imsave(vol::Array, fname::ASCIIString, is_overwrite=true)
+function imsave(vol::Array, fname, is_overwrite=true)
     # remove existing file
     if isfile(fname) && is_overwrite
         rm(fname)
@@ -33,7 +33,7 @@ function imsave(vol::Array, fname::ASCIIString, is_overwrite=true)
     end
 end
 
-function img2svg( img::Array, fname::ASCIIString )
+function img2svg( img::Array, fname )
     using Compose
     # reshape to vector
     v = reshape( img, length(img))
