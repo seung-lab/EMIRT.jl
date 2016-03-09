@@ -44,7 +44,7 @@ function autoparse(s)
     end
 end
 
-function configparser(fconf::ASCIIString)
+function configparser(fconf)
     # read text file
     f = open(fconf)
     lines = readlines(f)
