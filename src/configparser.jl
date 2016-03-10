@@ -34,13 +34,17 @@ function autoparse(s)
         return str2array(s)
     elseif contains(s, ",")
         return str2list(s)
+    elseif s=="yes" || s=="Yes"|| s=="y" || s=="true" || s=="True"
+        return true
+    elseif s=="no" || s=="No" || s=="n" || s=="false" || s=="False"
+        return false
     else
         # automatic transformation
         return eparse(s)
     end
 end
 
-function configparser(fconf::ASCIIString)
+function configparser(fconf)
     # read text file
     f = open(fconf)
     lines = readlines(f)
@@ -52,6 +56,9 @@ function configparser(fconf::ASCIIString)
     sec = "section"
     # analysis the lines
     for l in lines
+        # remove space and \n
+        l = replace(l, " ", "")
+        l = replace(l, "\n", "")
         if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
             continue
         elseif ismatch(r"^\s*\[.*\]", l)
@@ -61,9 +68,6 @@ function configparser(fconf::ASCIIString)
             pd[sec] = Dict()
         elseif ismatch(r"^\s*.*\s*=", l)
             k, v = split(l, '=')
-            k = replace(k, " ", "")
-            v = replace(v, " ", "")
-            v = replace(v, "\n", "")
             # assign value to dictionary
             pd[sec][k] = autoparse( v )
         end
