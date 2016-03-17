@@ -1,9 +1,31 @@
 include( "domains.jl" )
 include("label.jl")
 
-export aff2seg, exchangeaffsxz!, arr2uniform, affs2uniform!
+export aff2seg, exchangeaffsxz!, arr2uniform, affs2uniform!, gaffs2saffs
 
 typealias Taffs Array{Float32,4}
+
+"""
+transform google affinity to seung lab affinity
+"""
+function gaffs2saffs( gaffs )
+    @assert ndims(gaffs)==3
+    sx,sy,sz = size(gaffs)
+    saffs = reshape(gaffs, (sx,sy,Int64(sz/3),Int64(3)));
+    #saffs = permutedims(saffs, [2,1,3,4]);
+
+    # transform the x y and z channel
+    #saffs[:,:,2:end, 1] = gaffs[:,:,1:end-1, 1]
+    #saffs[:,:,2:end, 2] = gaffs[:,:,1:end-1, 2]
+    #saffs[:,:,2:end, 3] = gaffs[:,:,1:end-1, 3]
+    #saffs[:,:,1,1] = 0
+    #saffs[:,:,1,2] = 0
+    #saffs[:,:,1,3] = 0
+
+    saffs[:,:,2:end, :] = saffs[:,:,1:end-1, :]
+    saffs[:,:,1,:] = 0
+    return saffs
+end
 
 # exchang X and Z channel of affinity
 function exchangeaffsxz!(affs::Taffs)
