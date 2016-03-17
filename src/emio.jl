@@ -26,8 +26,7 @@ function imsave(vol::Array, fname, is_overwrite=true)
     if contains(fname, ".h5") || contains(fname, ".hdf5")
         h5write(fname, "/main", vol)
     elseif contains(fname, ".tif")
-        # transpose the dims from x,y,z to z,y,x
-        ret = permutedims(vol, Array(ndims(vol):-1:1))
+        emio.imsave(vol, fname)
     else
         error("invalid image format! only support hdf5 and tif now.")
     end

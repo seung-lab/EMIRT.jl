@@ -1,6 +1,6 @@
 using Watershed
 
-export wsseg2d, watershed, mergert!, mergert
+export wsseg, watershed, mergert!, mergert
 
 function watershed(affs, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100)
     println("watershed, low: $low, high: $high")
@@ -80,4 +80,16 @@ function wsseg2d(affs, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100,
         seg[:,:,z] = mergert(seg[:,:,z], rt, thd_rt)
     end
     return seg
+end
+
+function wsseg(affs, dim = 3, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100, thd_rt=0.5)
+    @assert dim==2 || dim==3
+    if dim==2
+        return wsset2d(affs, low, high, thresholds, dust_size, thd_rt)
+    else
+        seg = zeros(UInt32, size(affs)[1:3] )
+        seg, rt = watershed(affs, low, high, thresholds, dust_size)
+        seg = mergert(seg, rt, thd_rt)
+        return seg
+    end
 end

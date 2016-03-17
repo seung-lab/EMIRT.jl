@@ -44,9 +44,7 @@ end
 function affs_error_curve(affs::Taffs, lbl::Tlabel, dim=3, step=0.1, seg_method="connected_component", redist = "uniform")
     # transform to uniform distribution
     if redist == "uniform"
-        for c in 1:3
-            affs[:,:,:,c] = uniform_transformation(affs[:,:,:,c]);
-        end
+        affs2uniform!(affs);
     end
     # thresholds
     if seg_method=="connected_component"
@@ -59,7 +57,7 @@ function affs_error_curve(affs::Taffs, lbl::Tlabel, dim=3, step=0.1, seg_method=
     rem = zeros(thds)
     res = zeros(thds)
     # rand f score
-    rf = zeros(thds)
+    rf =  zeros(thds)
     rfm = zeros(thds)
     rfs = zeros(thds)
 
@@ -76,9 +74,9 @@ function affs_error_curve(affs::Taffs, lbl::Tlabel, dim=3, step=0.1, seg_method=
 
         if seg_method == "watershed"
             if dim==2
-                seg = wsseg2d(affs, 0,  0.95, [], 0, thds[i])
+                seg = wsseg(affs, 2, 0,  0.95, [], 0, thds[i])
             else
-                seg = wsseg(affs, 0, 0.9, [], 0, thds[i])
+                seg = wsseg(affs, 3, 0, 0.9, [], 0, thds[i])
             end
         else
             seg = aff2seg( affs, dim, thds[i] )
@@ -87,8 +85,20 @@ function affs_error_curve(affs::Taffs, lbl::Tlabel, dim=3, step=0.1, seg_method=
         seg = Array{UInt64,3}(seg)
         segs[i,:,:,:]  = seg
         # rand f score and rand error
-        rf[i], rfm[i], rfs[i] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-        re[i], rem[i], res[i] = serror.seg_fr_rand_error(seg, lbl, true, true)
+        if dim==3
+            rf[i], rfm[i], rfs[i] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
+            re[i], rem[i], res[i] = serror.seg_fr_rand_error(seg, lbl, true, true)
+        else
+            # 2D rand error and rand f score
+            for z in 1:size(seg,3)
+                rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg, lbl, true, true)
+                rez, remz, resz = serror.seg_fr_rand_error(seg, lbl, true, true)
+                rf[i] += rfz; rfm[i] += rfmz; rfs[i] += rfsz;
+                re[i] += rez; rem[i] += remz; res[i] += resz;
+            end
+            rf[i] /= size(seg,3); rfm[i] /= size(seg,3); rfs[i] /= size(seg,3);
+            re[i] /= size(seg,3); rem[i] /= size(seg,3); res[i] /= size(seg,3);
+        end
     end
     # print the scores
     println("rand f score: $rf")
