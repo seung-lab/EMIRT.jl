@@ -15,16 +15,14 @@ function gaffs2saffs( gaffs )
     #saffs = permutedims(saffs, [2,1,3,4]);
 
     # transform the x y and z channel
-    #saffs[:,:,2:end, 1] = gaffs[:,:,1:end-1, 1]
-    #saffs[:,:,2:end, 2] = gaffs[:,:,1:end-1, 2]
-    #saffs[:,:,2:end, 3] = gaffs[:,:,1:end-1, 3]
-    #saffs[:,:,1,1] = 0
-    #saffs[:,:,1,2] = 0
-    #saffs[:,:,1,3] = 0
+    ret = zeros(saffs)
+    ret[2:end,:,:, 1] = saffs[1:end-1,:,:, 1]
+    ret[:,2:end,:, 2] = saffs[:,1:end-1,:, 2]
+    ret[:,:,2:end, 3] = saffs[:,:,1:end-1, 3]
 
-    saffs[:,:,2:end, :] = saffs[:,:,1:end-1, :]
-    saffs[:,:,1,:] = 0
-    return saffs
+    #saffs[:,:,2:end, :] = saffs[:,:,1:end-1, :]
+    #saffs[:,:,1,:] = 0
+    return ret
 end
 
 # exchang X and Z channel of affinity
