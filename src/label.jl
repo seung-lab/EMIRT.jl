@@ -1,9 +1,11 @@
 export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!
 
-typealias Tlabel Array{UInt32,3}
+include("domains.jl")
+
+include("types.jl")
 
 # label all the singletones as boundary
-function markbdr!( seg::Tlabel )
+function markbdr!( seg::Tseg )
 
     # a flag array indicating whether it is segment
     flg = falses(seg)
@@ -57,7 +59,7 @@ end
 # relabel the segment according to connectivity
 # where N is the total number of segments
 # Note that this is different from relabel1N in segerror package, which relabeles in 2D and labeled the segment ID to 1-N, where N is the total number of segments.
-function relabel_seg( lbl::Tlabel, dim=3 )
+function relabel_seg( lbl::Tseg, dim=3 )
     @assert dim==2 || dim==3
     N = length(lbl)
     X,Y,Z = size(lbl)
@@ -126,7 +128,7 @@ end
 
 
 # reassign segment ID as 1-N
-function reassign_segid1N!( lbl::Tlabel )
+function reassign_segid1N!( lbl::Tseg )
     # dictionary of ids
     did = Dict()
     did[0] = 0
@@ -214,4 +216,58 @@ function add_lbl_boundary!(lbl::Array, conn=8)
             end
         end
     end
+end
+
+
+"""
+transform segmentation to domains
+Inputs:
+seg: a segmentation or label of image volume
+
+Outputs:
+dms: domains for fast union-find algorithm defined in "domains.jl"
+"""
+function seg2dms(seg::Tseg, is_merge = true)
+    # initialize a domain as singletons
+    @assert ndims(seg)==2 || ndims(seg)==3
+    dms = Tdomains( length(seg) )
+
+    # if do not merge, return directly
+    if !is_merge
+        return dms
+    end
+
+    # volume size
+    sx,sy,sz = size(seg)
+
+    # union all the voxel with same segment ID
+    for z in 1:sz
+        for y in 1:sy
+            for x in 1:sx
+                # voxel id
+                vid1 = x + (y-1)*sx + (z-1)*sx*sy
+                # segmentation ID
+                sid1 = seg[x,y,z]
+
+                # x affinity
+                if x>1 && sid1==seg[x-1,y,z]
+                    vid2 = x-1 + (y-1)*sx + (z-1)*sx*sy
+                    union!(dms, vid1, vid2)
+                end
+
+                # y affinity
+                if y>1 && sid1==seg[x,y-1,z]
+                    vid2 = x + (y-2)*sx + (z-1)*sx*sy
+                    union!(dms, vid1, vid2)
+                end
+
+                # z affinity
+                if z>1 && sid1==seg[x,y,z-1]
+                    vid2 = x + (y-1)*sx + (z-2)*sx*sy
+                    union!(dms, vid1, vid2)
+                end
+            end
+        end
+    end
+    return dms
 end

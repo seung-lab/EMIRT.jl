@@ -1,5 +1,6 @@
-export Tdjsets, find!, union!, markbdr!, setallroot!
-export Tdomains
+include("types.jl")
+
+export Tdjsets, find!, union!, setallroot!, Tdomains, get_merge_split_errors
 
 type Tdjsets
     sets::Array{UInt32}
@@ -24,7 +25,7 @@ function find!( djsets::Tdjsets, vid )
         rid = djsets.sets[rid]
     end
 
-    # patch compression
+    # path compression
     # current id
     cid = vid
     while rid != cid
@@ -39,73 +40,26 @@ end
 # import Base.union! for extention
 import Base.union!
 function union!( djsets::Tdjsets, sid1, sid2 )
-    if sid1 == sid2
+    # find root id
+    rid1 = find!(djsets, sid1)
+    rid2 = find!(djsets, sid2)
+
+    if rid1 == rid2
         # already in the same domain
-        return sid1
+        return rid1
     end
 
     # reduce set number
     djsets.numsets -= 1
-    if djsets.setsz[ sid1 ] >= djsets.setsz[ sid2 ]
+    if djsets.setsz[ rid1 ] >= djsets.setsz[ rid2 ]
         # assign sid1 as the parent of sid2
-        djsets.sets[ sid2 ] = sid1
-        djsets.setsz[ sid1 ] += djsets.setsz[ sid2 ]
-        return sid1
+        djsets.sets[ rid2 ] = rid1
+        djsets.setsz[ rid1 ] += djsets.setsz[ rid2 ]
+        return rid1
     else
-        djsets.sets[ sid1 ] = sid2
-        djsets.setsz[ sid2 ] += djsets.setsz[ sid1 ]
-        return sid2
-    end
-end
-
-# label all the singletones as boundary
-function markbdr!( seg::Array{Integer, 3} )
-
-    # a flag array indicating whether it is segment
-    flg = falses(seg)
-    # size
-    X,Y,Z = size(seg)
-
-    # traverse the segmentation
-    for z in 1:Z
-        for y in 1:Y
-            for x in 1:X
-                if flg[x,y,z]
-                    continue
-                end
-                if x>1 && seg[x,y,z]==seg[x-1,y,z]
-                    flg[x,  y,z] = true
-                    flg[x-1,y,z] = true
-                    continue
-                end
-                if x<X && seg[x,y,z]==seg[x+1,y,z]
-                    flg[x,  y,z] = true
-                    flg[x+1,y,z] = true
-                    continue
-                end
-                if y>1 && seg[x,y,z]==seg[x,y-1,z]
-                    flg[x,y,z] = true
-                    flg[x,y-1,z] = true
-                    continue
-                end
-                if y<Y && seg[x,y,z]==seg[x,y+1,z]
-                    flg[x,y,  z] = true
-                    flg[x,y+1,z] = true
-                end
-                if z>1 && seg[x,y,z]==seg[x,y,z-1]
-                    flg[x,y,z  ] = true
-                    flg[x,y,z-1] = true
-                    continue
-                end
-                if z<Z && seg[x,y,z]==seg[x,y,z+1]
-                    flg[x,y,z  ] = true
-                    flg[x,y,z+1] = true
-                    continue
-                end
-                # it is a singletone
-                seg[x,y,z] = 0
-            end
-        end
+        djsets.sets[ rid1 ] = rid2
+        djsets.setsz[ rid2 ] += djsets.setsz[ rid1 ]
+        return rid2
     end
 end
 
@@ -119,116 +73,101 @@ function setallroot!( djsets::Tdjsets )
     return djsets.sets
 end
 
-
-type Tdomainlabelsizes
-    sizes::Dict
-end
-
-function Tdomainlabelsizes( lid=nothing, lsz=1 )
-    sizes = Dict()
-    if isdefined(lid)
-        sizes[lid] = lsz
-    end
-    return Tdomainlabelsizes(sizes)
-end
-
+typealias Tdmls Dict
 
 # union dm2 to dm1, only dm1 was changed
-function union!( dm1::Tdomainlabelsizes, dm2::Tdomainlabelsizes )
-    for (lid2, sz2) in dm2
-        if haskey(dm1, lid2)
+function union!( dmls1::Tdmls, dmls2::Tdmls )
+    for (lid2, sz2) in dmls2
+        if haskey(dmls1, lid2)
             # have common segment id, merge together
-            dm1[lid2] += sz2
+            dmls1[lid2] += sz2
         else
             # do not have common id, create new one
-            dm1[lid2] = sz2
+            dmls1[lid2] = sz2
         end
     end
+    # clear the dmls2
+    dmls2 = Dict()
 end
 
-function clear!( dlszes::Tdomainlabelsizes )
-    dlszes = Dict()
-end
+typealias Tdlszes Array{Tdmls,1}
 
-function get_merge_split_errors(dm1::Tdomainlabelsizes, dm2::Tdomainlabelsizes)
+function get_merge_split_errors(dlszes1::Tdlszes, dlszes2::Tdlszes)
     # merging and splitting error
     me = 0
     se = 0
-    for (lid1, sz1) in dm1
-        for (lid2, sz2) in dm2
-            # ignore the boudaries
-            if lid1>0 && lid2>0
-                if lid1==lid2
-                    # they should be merged together
-                    # this is a split error
-                    se += sz1 * sz2
-                else
-                    # they should be splitted
-                    # this is a merging error
-                    me += sz1 * sz2
+    for dlsz1 in dlszes1
+        for dlsz2 in dlszes2
+            for (lid1, sz1) in dlsz1
+                for (lid2, sz2) in dlsz2
+                    # ignore the boudaries
+                    if lid1>0 && lid2>0
+                        if lid1==lid2
+                            # they should be merged together
+                            # this is a split error
+                            se += sz1 * sz2
+                        else
+                            # they should be splitted
+                            # this is a merging error
+                            me += sz1 * sz2
+                        end
+                    end
                 end
             end
         end
     end
+    return me, se
 end
 
 type Tdomains
     # domain label sizes
-    dlszes::Array{Tdomainlabelsizes, 1}
+    dlszes::Tdlszes
     # disjoint sets
     djsets::Tdjsets
 end
 
-function Tdomains(lbl::Array)
-    @assert ndims(lbl)==2 || ndims(lbl)==3
-
+function Tdomains(N::Number)
     # initialize the disjoint sets
-    djsets = Tdisjointsets( length(lbl) )
+    djsets = Tdjsets( N )
 
     # initialize the dms as an empty vector/list/1D array
     dlszes = []
-    lbl1d = reshape(lbl, length(lbl) )
-    for vid in 1:legth(lbl)
-        # manual labeled segment id
-        lid = lbl1d[vid]
-        push!(dlszes, Tdomainlabelsizes(lid) )
+    for vid in 1:N
+        # initial manual labeled segment id
+        push!(dlszes, Tdmls(vid=>1) )
     end
     return Tdomains(dlszes, djsets)
 end
 
 # find the corresponding domain of a voxel
-function find!(dm::Tdomains, vid)
-    rid = find!(dm.djsets, vid)
-    dm = dm.dlszes[ rid ]
-    return rid, dm
+function find!(dms::Tdomains, vid)
+    rid = find!(dms.djsets, vid)
+    dmlsz = dms.dlszes[ rid ]
+    return rid, dmlsz
 end
 
 # union the two domains of two voxel ids
-function union!(dm::Tdomains, vid1, vid2)
+function union!(dms::Tdomains, vid1, vid2)
     # domain id and domain
-    rid1, dm1 = find!(vid1)
-    rid2, dm2 = find!(vid2)
+    rid1, dmsz1 = find!(dms, vid1)
+    rid2, dmsz2 = find!(dms, vid2)
 
     # alread in one domain
     if rid1 == rid2
-        return 0,0
+        return
     end
 
-    # compute error
-    me, se = get_merge_split_errors( dm1, dm2 )
-
-    # attach the small one to the big one
-    if dm.djsets.setsz[ rid1 ] < dm.djsets.setsz[ rid2 ]
-        rid1, rid2 = rid2, rid1
-        dm1, dm2 = dm2, dm1
+    # attach the small one to the big one to make the tree as flat as possible
+    if dms.djsets.setsz[ rid1 ] < dms.djsets.setsz[ rid2 ]
+        # merge these two domains
+        union!(dms.dlszes[rid2], dms.dlszes[rid1])
+        # join the sets
+        union!( dms.djsets, rid1, rid2 )
+    else
+        # merge these two domain label sizes
+        union!(dms.dlszes[rid1], dms.dlszes[rid2])
+        # join the sets
+        union!( dms.djsets, rid1, rid2 )
     end
 
-    # merge these two domains
-    union!(dm1, dm2)
-    dm.dlszes[rid1] = dm1
-    clear!( dm.dlszes[rid2] )
-
-    # join the sets
-    union!( dm.djsets, rid1, rid2 )
-    return me, se
 end

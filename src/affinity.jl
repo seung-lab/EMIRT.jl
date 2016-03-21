@@ -1,9 +1,8 @@
 include( "domains.jl" )
 include("label.jl")
+include("types.jl")
 
-export aff2seg, exchangeaffsxz!, arr2uniform, affs2uniform!, gaffs2saffs
-
-typealias Taffs Array{Float32,4}
+export aff2seg, exchangeaffsxz!, affs2uniform, gaffs2saffs, affs2edgelist
 
 """
 transform google affinity to seung lab affinity
@@ -12,7 +11,6 @@ function gaffs2saffs( gaffs )
     @assert ndims(gaffs)==3
     sx,sy,sz = size(gaffs)
     saffs = reshape(gaffs, (sx,sy,Int64(sz/3),Int64(3)));
-    #saffs = permutedims(saffs, [2,1,3,4]);
 
     # transform the x y and z channel
     ret = zeros(saffs)
@@ -20,8 +18,6 @@ function gaffs2saffs( gaffs )
     ret[:,2:end,:, 2] = saffs[:,1:end-1,:, 2]
     ret[:,:,2:end, 3] = saffs[:,:,1:end-1, 3]
 
-    #saffs[:,:,2:end, :] = saffs[:,:,1:end-1, :]
-    #saffs[:,:,1,:] = 0
     return ret
 end
 
@@ -110,13 +106,14 @@ function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
     return seg
 end
 
-function arr2uniform(x, alg=MergeSort)
+function affs2uniform(x, alg=QuickSort)
+    print("map to uniform distribution...")
     tp = typeof(x)
     sz = size(x)
     # flatten the array
     x = x[:]
     # get the indices
-    idx = sortperm( sortperm(x, alg=alg), alg=alg )
+    idx = sortperm(x, alg=alg)
 
     # generating values
     v = linspace(0, 1, length(x))
@@ -124,13 +121,50 @@ function arr2uniform(x, alg=MergeSort)
     v = v[idx]
     v = reshape(v, sz)
     v = tp( v )
-
+    println("done!")
     return v
 end
 
-function affs2uniform!(affs::Taffs)
-    println("transfer to uniform distribution...")
-    for z in 1:size(affs,3)
-        affs[:,:,z,:] = arr2uniform( affs[:,:,z,:] )
+#function affs2uniform!(affs::Taffs)
+ #   println("transfer to uniform distribution...")
+ #   for z in 1:size(affs,3)
+ #       affs[:,:,z,:] = arr2uniform( affs[:,:,z,:] )
+ #   end
+#end
+
+"""
+transfer affinity map to edge list
+"""
+function affs2edgelist(affs::Taffs, is_sort=true)
+    # initialize the edge list
+    elst = Array{Tuple{Float32,UInt32,UInt32},1}([])
+    # get the sizes
+    sx,sy,sz,sc = size(affs)
+
+    for z in 1:sz
+        for y in 1:sy
+            for x in 1:sx
+                vid1 = x + (y-1)*sx + (z-1)*sx*sy
+                # x affinity
+                if x>1
+                    vid2 = x + (y-1)*sx + (z-1)*sx*sy
+                    push!(elst, (affs[x,y,z,1], vid1, vid2))
+                end
+                # y affinity
+                if y>1
+                    vid2 = x + (y-2)*sx + (z-1)*sx*sy
+                    push!(elst, (affs[x,y,z,2], vid1, vid2))
+                end
+                # z affinity
+                if z>1
+                    vid2 = x + (y-1)*sx + (z-2)*sx*sy
+                    push!(elst, (affs[x,y,z,3], vid1, vid2))
+                end
+            end
+        end
     end
+    if is_sort
+        @time sort!(elst, rev=true)
+    end
+    return elst
 end

@@ -1,19 +1,21 @@
-export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve
+export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors
 
 using PyCall
 @pyimport segerror.error as serror
 
 include("affinity.jl")
+include("label.jl")
+include("domains.jl")
 
 # measure 2D rand error of affinity
-function affs_fr_rand_error(affs::Taffs, lbl::Tlabel, dim=3, thd=0.5)
+function affs_fr_rand_error(affs::Taffs, lbl::Tseg, dim=3, thd=0.5)
     @assert dim==3 || dim==2
     seg = aff2seg(affs, dim, thd)
     return seg_fr_rand_error( seg, lbl, dim )
 end
 
 # rand error of segmentation
-function seg_fr_rand_error( seg::Tlabel, lbl::Tlabel, dim=3 )
+function seg_fr_rand_error( seg::Tseg, lbl::Tseg, dim=3 )
     @assert dim==2 || dim==3
     if dim==2
         # relabel in 2D
@@ -26,7 +28,7 @@ function seg_fr_rand_error( seg::Tlabel, lbl::Tlabel, dim=3 )
 end
 
 # rand F score of segmentation
-function seg_fr_rand_f_score( seg::Tlabel, lbl::Tlabel, dim=3 )
+function seg_fr_rand_f_score( seg::Tseg, lbl::Tseg, dim=3 )
     @assert dim==3 || dim==2
     if dim == 2
         # relabel in 2D
@@ -41,7 +43,7 @@ end
 
 
 # rand error curve
-function affs_error_curve(affs::Taffs, lbl::Tlabel, dim=3, step=0.1, seg_method="connected_component", redist = "uniform")
+function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="connected_component", redist = "uniform")
     # transform to uniform distribution
     if redist == "uniform"
         affs2uniform!(affs);
@@ -104,4 +106,66 @@ function affs_error_curve(affs::Taffs, lbl::Tlabel, dim=3, step=0.1, seg_method=
     println("rand f score: $rf")
     println("rand error: $re")
     return thds, segs, rf, rfm, rfs, re, rem, res
+end
+
+"""
+compute the foreground restricted rand error
+
+Inputs:
+affs: affinity map
+lbl: ground truth labeling
+thds: a list of thresholds to segment the affinity map using connected component
+
+Outputs:
+a list of foreground restricted rand errors corresponds to the thresholds
+"""
+function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(1,0,11)))
+    @assert size(affs)[1:3] == size(lbl)
+    # sizes
+    sx,sy,sz = size(lbl)
+
+    # number of non-boundary voxels of label
+    nnb = Float32( countnz(lbl) )
+
+    # initialize the rand errors
+    mes = zeros(Float32, size(thds))
+    ses = ones(Float32, size(thds))* nnb*(nnb-1)
+    res = zeros(Float32, size(thds))
+
+    # initialize domains for affinity map
+    adms = Tdomains( length(lbl) )
+
+    # get the sorted affinity edge list
+    print("get the sorted affinity edge list......")
+    elst = affs2edgelist( affs )
+    println("done :)")
+
+    # merge the voxels by traversing the sorted affinity edges
+    # thresholds index
+    ti = 1
+    lbl_flat = lbl[:]
+    for (a, vid1, vid2) in elst
+        # skip the boundaries
+        if lbl_flat[vid1]==0 || lbl_flat[vid2]==0
+            continue
+        end
+        print("$a, ")
+
+        # correct or incorrect merge
+        if lbl_flat[vid1] == lbl_flat[vid2]
+            # shold merge
+            for i in 1:length(thds)
+                if a >= thds[i]
+                   mes =
+            se[] -= ses[]
+        else
+            # merge error
+            me[]
+
+        # union the voxel pair
+        #print("union of two voxels: $(vid1), $(vid2) ...")
+        union!(adms, vid1, vid2)
+        #println("done :)")
+    end
+    return res, mes, ses
 end

@@ -5,12 +5,15 @@ using PyCall
 export img2svg, imread, imsave
 
 function imread(fname)
+    print("reading file: $(fname) ......")
     if contains(fname, ".h5") || contains(fname, ".hdf5")
+        println("done :)")
         return h5read(fname, "/main")
     elseif contains(fname, ".tif")
         vol = emio.imread(fname)
         # transpose the dims from z,y,x to x,y,z
         vol = permutedims(vol, Array(ndims(vol):-1:1))
+        println("done :)")
         return vol
     else
         error("invalid file type! only support hdf5 and tif now.")
@@ -18,6 +21,7 @@ function imread(fname)
 end
 
 function imsave(vol::Array, fname, is_overwrite=true)
+    print("saving file: $(fname); ......")
     # remove existing file
     if isfile(fname) && is_overwrite
         rm(fname)
@@ -30,6 +34,7 @@ function imsave(vol::Array, fname, is_overwrite=true)
     else
         error("invalid image format! only support hdf5 and tif now.")
     end
+    println("done!")
 end
 
 function img2svg( img::Array, fname )
