@@ -1,21 +1,17 @@
 include("types.jl")
 
-export Tdjsets, find!, union!, setallroot!, Tdomains, get_merge_split_errors
+export Tdjsets, find!, union!, setallroot!, Tdomains
 
 type Tdjsets
     sets::Array{UInt32}
     setsz::Array{UInt32}
-    numsets::UInt32
-    size::UInt32
 end
 
 # constructor
 function Tdjsets(N)
     sets = Array(1:N)
     setsz = ones(sets)
-    numsets = N
-    size = N
-    Tdjsets(sets, setsz, numsets, size)
+    Tdjsets(sets, setsz)
 end
 
 function find!( djsets::Tdjsets, vid )
@@ -50,7 +46,6 @@ function union!( djsets::Tdjsets, sid1, sid2 )
     end
 
     # reduce set number
-    djsets.numsets -= 1
     if djsets.setsz[ rid1 ] >= djsets.setsz[ rid2 ]
         # assign sid1 as the parent of sid2
         djsets.sets[ rid2 ] = rid1
@@ -65,7 +60,7 @@ end
 
 function setallroot!( djsets::Tdjsets )
     # label all the voxels to root id
-    for vid in 1:djsets.size
+    for vid in 1:length( djsets.sets )
         # with patch compress
         # all the voxels will be labeled as root id
         rid = find!(djsets, vid)
@@ -73,51 +68,53 @@ function setallroot!( djsets::Tdjsets )
     return djsets.sets
 end
 
-typealias Tdmls Dict
+# size of each label in a domain
+# key is the label id in ground truth
+# value is the number of voxels in that label
+typealias Tdlsz Dict{UInt32,UInt32}
 
-# union dm2 to dm1, only dm1 was changed
-function union!( dmls1::Tdmls, dmls2::Tdmls )
-    for (lid2, sz2) in dmls2
-        if haskey(dmls1, lid2)
-            # have common segment id, merge together
-            dmls1[lid2] += sz2
-        else
-            # do not have common id, create new one
-            dmls1[lid2] = sz2
+function get_pair_num(dlsz1::Tdlsz, dlsz2::Tdlsz)
+    n_same_pair = UInt32(0)
+    n_diff_pair = UInt32(0)
+    for (lid1, sz1) in dlsz1
+        if lid1==0
+            continue
         end
-    end
-    # clear the dmls2
-    dmls2 = Dict()
-end
-
-typealias Tdlszes Array{Tdmls,1}
-
-function get_merge_split_errors(dlszes1::Tdlszes, dlszes2::Tdlszes)
-    # merging and splitting error
-    me = 0
-    se = 0
-    for dlsz1 in dlszes1
-        for dlsz2 in dlszes2
-            for (lid1, sz1) in dlsz1
-                for (lid2, sz2) in dlsz2
-                    # ignore the boudaries
-                    if lid1>0 && lid2>0
-                        if lid1==lid2
-                            # they should be merged together
-                            # this is a split error
-                            se += sz1 * sz2
-                        else
-                            # they should be splitted
-                            # this is a merging error
-                            me += sz1 * sz2
-                        end
-                    end
-                end
+        for (lid2, sz2) in dlsz2
+            if lid2==0
+                continue
+            end
+            if lid1 == lid2
+                # have common segment id, merge together
+                n_same_pair += sz1 * sz2
+            else
+                # do not have common id, create new one
+                n_diff_pair += sz1 * sz2
             end
         end
     end
-    return me, se
+    return n_same_pair, n_diff_pair
 end
+
+# union dm2 to dm1, only dm1 was changed
+function union!( dlsz1::Tdlsz, dlsz2::Tdlsz )
+    for (lid1, sz1) in dlsz1
+        for (lid2, sz2) in dlsz2
+            if lid1 == lid2
+                # have common segment id, merge together
+                dlsz1[lid1] += sz2
+            else
+                # do not have common id, create new one
+                dlsz1[lid2] = sz2
+            end
+        end
+    end
+    # clear the dlsz2
+    dlsz2 = Dict()
+end
+
+# list of dictionary, each represents the label sizes
+typealias Tdlszes Array{Tdlsz,1}
 
 type Tdomains
     # domain label sizes
@@ -126,48 +123,54 @@ type Tdomains
     djsets::Tdjsets
 end
 
-function Tdomains(N::Number)
+# constructor function
+function Tdomains(lbl::Tseg)
+    # number of voxels
+    N = length(lbl)
     # initialize the disjoint sets
     djsets = Tdjsets( N )
 
     # initialize the dms as an empty vector/list/1D array
-    dlszes = []
+    dlszes = Tdlszes([])
+    lbl_flat = lbl[:]
     for vid in 1:N
+        lid = lbl_flat[vid]
         # initial manual labeled segment id
-        push!(dlszes, Tdmls(vid=>1) )
+        push!(dlszes, Tdlsz(lid=>1) )
     end
-    return Tdomains(dlszes, djsets)
+    Tdomains(dlszes, djsets)
 end
 
 # find the corresponding domain of a voxel
 function find!(dms::Tdomains, vid)
     rid = find!(dms.djsets, vid)
-    dmlsz = dms.dlszes[ rid ]
-    return rid, dmlsz
+    dlsz = dms.dlszes[ rid ]
+    return rid, dlsz
 end
 
-# union the two domains of two voxel ids
-function union!(dms::Tdomains, vid1, vid2)
-    # domain id and domain
-    rid1, dmsz1 = find!(dms, vid1)
-    rid2, dmsz2 = find!(dms, vid2)
 
+function union!(dms::Tdomains, rid1::UInt32, dlsz1::Tdlsz, rid2::UInt32, dlsz2::Tdlsz)
     # alread in one domain
     if rid1 == rid2
         return
     end
 
     # attach the small one to the big one to make the tree as flat as possible
-    if dms.djsets.setsz[ rid1 ] < dms.djsets.setsz[ rid2 ]
-        # merge these two domains
-        union!(dms.dlszes[rid2], dms.dlszes[rid1])
-        # join the sets
-        union!( dms.djsets, rid1, rid2 )
-    else
-        # merge these two domain label sizes
-        union!(dms.dlszes[rid1], dms.dlszes[rid2])
-        # join the sets
-        union!( dms.djsets, rid1, rid2 )
-    end
+    union!( dms.djsets, rid1, rid2 )
 
+    # merge small one to big one
+    if dms.djsets.setsz[ rid1 ] < dms.djsets.setsz[ rid2 ]
+        union!(dms.dlszes[rid2], dms.dlszes[rid1])
+    else
+        union!(dms.dlszes[rid1], dms.dlszes[rid2])
+    end
+end
+
+# union the two domains of two voxel ids
+function union!(dms::Tdomains, vid1::UInt32, vid2::UInt32)
+    # domain id and domain
+    rid1, dlsz1 = find!(dms, vid1)
+    rid2, dlsz2 = find!(dms, vid2)
+
+    union!(dms, rid1, dlsz1, rid2, dlsz2)
 end

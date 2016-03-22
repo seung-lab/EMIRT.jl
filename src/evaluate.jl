@@ -127,13 +127,14 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
     # number of non-boundary voxels of label
     nnb = Float32( countnz(lbl) )
 
-    # initialize the rand errors
-    mes = zeros(Float32, size(thds))
-    ses = ones(Float32, size(thds))* nnb*(nnb-1)
-    res = zeros(Float32, size(thds))
+    # initialize the true positive, false positive, true negative, false negative
+    tps = zeros(Float32, size(thds))
+    fps = zeros(Float32, size(thds))
+    tns = zeros(Float32, size(thds))
+    fns = zeros(Float32, size(thds))
 
     # initialize domains for affinity map
-    adms = Tdomains( length(lbl) )
+    adms = Tdomains( lbl )
 
     # get the sorted affinity edge list
     print("get the sorted affinity edge list......")
@@ -145,27 +146,42 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
     ti = 1
     lbl_flat = lbl[:]
     for (a, vid1, vid2) in elst
-        # skip the boundaries
-        if lbl_flat[vid1]==0 || lbl_flat[vid2]==0
+        # compute the number of pairs
+        rid1, dlsz1 = find!(adms, vid1)
+        rid2, dlsz2 = find!(adms, vid2)
+        if rid1 == rid2
+            # already in a same segment, no need to merge
             continue
         end
-        print("$a, ")
 
-        # correct or incorrect merge
-        if lbl_flat[vid1] == lbl_flat[vid2]
-            # shold merge
-            for i in 1:length(thds)
-                if a >= thds[i]
-                   mes =
-            se[] -= ses[]
-        else
-            # merge error
-            me[]
+        n_same_pair, n_diff_pair = get_pair_num(dlsz1, dlsz2)
+        #println("n_same_pair: $(n_same_pair), \t n_diff_pair: $(n_diff_pair)")
+        for i in 1:length(thds)
+            if a > thds[i]
+                # positive, will merge
+                fps[i] += n_diff_pair
+                tps[i] += n_same_pair
+            else
+                # negative, will split
+                fns[i] += n_same_pair
+                tns[i] += n_diff_pair
+            end
+        end
 
         # union the voxel pair
-        #print("union of two voxels: $(vid1), $(vid2) ...")
-        union!(adms, vid1, vid2)
-        #println("done :)")
+        union!(adms, rid1, dlsz1, rid2, dlsz2)
     end
+    println("tps: $tps")
+    println("fps: $fps")
+    println("tns: $tns")
+    println("fns: $fns")
+    println("non-boundary voxel number: $nnb")
+    println("non-boundary voxel pair number: $(nnb*(nnb-1)/2)")
+    @assert tps + fps + tns + fns == ones(Float32,size(thds))* (nnb*(nnb-1)/2)
+    # normalize the error
+    mes = fps / (nnb*(nnb-1))
+    ses = fns / (nnb*(nnb-1))
+    # compute rand error
+    res = mes + ses
     return res, mes, ses
 end

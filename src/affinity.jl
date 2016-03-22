@@ -110,15 +110,18 @@ function affs2uniform(x, alg=QuickSort)
     print("map to uniform distribution...")
     tp = typeof(x)
     sz = size(x)
+    N = length(x)
     # flatten the array
     x = x[:]
     # get the indices
-    idx = sortperm(x, alg=alg)
+    p =  sortperm(x, alg=alg)
+    q = zeros(p)
+    q[p[1:N]] = 1:N
 
     # generating values
     v = linspace(0, 1, length(x))
     # making new array
-    v = v[idx]
+    v = v[q]
     v = reshape(v, sz)
     v = tp( v )
     println("done!")
