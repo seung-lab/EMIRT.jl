@@ -106,20 +106,21 @@ function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
     return seg
 end
 
-function affs2uniform(x, alg=QuickSort)
+function affs2uniform(affs, alg=QuickSort)
     print("map to uniform distribution...")
-    tp = typeof(x)
-    sz = size(x)
-    N = length(x)
-    # flatten the array
-    x = x[:]
+    tp = typeof(affs)
+    sz = size(affs)
+    N = length(affs)
+
     # get the indices
-    p =  sortperm(x, alg=alg)
+    print("get the permutation by sorting......")
+    @time p = sortperm(affs[:], alg=alg)
+    println("done :)")
     q = zeros(p)
     q[p[1:N]] = 1:N
 
     # generating values
-    v = linspace(0, 1, length(x))
+    v = linspace(0, 1, N)
     # making new array
     v = v[q]
     v = reshape(v, sz)

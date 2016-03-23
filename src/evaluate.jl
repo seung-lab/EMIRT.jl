@@ -46,7 +46,7 @@ end
 function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="connected_component", redist = "uniform")
     # transform to uniform distribution
     if redist == "uniform"
-        affs2uniform!(affs);
+        affs = affs2uniform(affs);
     end
     # thresholds
     if seg_method=="connected_component"
@@ -72,13 +72,19 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="c
     lbl = Array{UInt64,3}(lbl)
 
     segs = zeros(UInt32, (length(thds), size(lbl,1), size(lbl,2), size(lbl,3)))
+
+    # if watershed, get watershed domains and mst first
+    if seg_method == "watershed" && dim==3
+        wsdms, rt = watershed(affs, 0, 0.95, [], 0)
+    end
+
     for i in eachindex(thds)
 
         if seg_method == "watershed"
             if dim==2
                 seg = wsseg(affs, 2, 0,  0.95, [], 0, thds[i])
             else
-                seg = wsseg(affs, 3, 0, 0.9, [], 0, thds[i])
+                seg = mergert(wsdms, rt, thds[i])
             end
         else
             seg = aff2seg( affs, dim, thds[i] )
@@ -184,4 +190,60 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
     # compute rand error
     res = mes + ses
     return res, mes, ses
+end
+
+
+"""
+compute foreground restricted segment error by comparing segmentation with ground truth
+"""
+function segerror!(seg, lbl)
+    @assert size(seg)==size(lbl)
+
+    # reassigns the segment ID to 1-N to avoid huge sparse matrix
+    Ns = reassign_segid1N!(seg)
+    Nl = reassign_segid1N!(lbl)
+
+    # initialize a sparse overlap matrix
+    om = spzeros(Float32, Ns+1, Nl+1)
+
+    # create overlap matrix
+    for z in 1:size(seg,3)
+        for y in 1:size(seg,2)
+            for x in 1:size(seg,1)
+                # foreground restriction
+                if lbl[z,y,x]>0
+                    # the index 1 represent the 0 label
+                    om[seg[z,y,x]+1, lbl[z,y,x]+1] += 1
+                end
+            end
+        end
+    end
+
+    # number of non-zero voxels
+    N = Float32( countnz(lbl) )
+
+    # normalize the overlap matrix
+    om = om / N
+
+    # compute si and tj using cumulative sum
+    si = cumsum(om, 1)
+    tj = cumsum(om, 2)
+
+    # building blocks of error metrics
+    som = sum( om.^2 )
+    ssi = sum(si.^2)
+    stj = sum(tj.^2)
+
+    # rand error of mergers and splitters
+    rem = ssi - som
+    res = stj - som
+    re = rem + res
+
+    # rand f score of mergers and splitters
+    rfsm = som/ssi
+    rfss = som/stj
+    # harmonic mean
+    rfs = 2*som / (ssi + stj)
+
+    return re, rem, res, rfs, rfsm, rfss
 end

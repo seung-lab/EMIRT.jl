@@ -154,7 +154,7 @@ function reassign_segid1N!( lbl::Tseg )
             end
         end
     end
-    return lbl
+    return N
 end
 
 # add boundary between contacting segments
