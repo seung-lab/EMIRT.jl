@@ -1,4 +1,4 @@
-export configparser
+export configparser, argparser!
 
 function eparse(s)
     if contains(s, "/") || typeof(parse(s))==Symbol
@@ -73,4 +73,30 @@ function configparser(fconf)
         end
     end
     return pd
+end
+
+"""
+parameter dictionary
+input can be some default dictionary
+
+Note that all the key was one character, which is the first non '-' character!
+suppose that the argument is as follows:
+--flbl label.h5 --range 2,4-6
+the returned dictionary will be
+pd['f'] = "label.h5"
+pd['r'] = [2,4,5,6]
+"""
+function argparser!( pd=Dict() )
+    # argument table, two rows
+    @assert length(ARGS) % 2 ==0
+    argtbl = reshape(ARGS, 2,Int64( length(ARGS)/2))
+
+    # traverse all the argument table columns
+    for c in 1:size(argtbl,2)
+        @assert argtbl[1,c][1]=='-'
+        # key and value
+        k = replace(argtbl[1,c],"-","")[1]
+        v = autoparse( argtbl[2,c] )
+        pd[k] = v
+    end
 end

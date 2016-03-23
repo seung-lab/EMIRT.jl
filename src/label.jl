@@ -1,4 +1,4 @@
-export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!
+export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!
 
 include("domains.jl")
 
@@ -128,7 +128,7 @@ end
 
 
 # reassign segment ID as 1-N
-function reassign_segid1N!( lbl::Tseg )
+function segid1N!( lbl::Tseg )
     # dictionary of ids
     did = Dict()
     did[0] = 0
@@ -270,4 +270,89 @@ function seg2dms(seg::Tseg, is_merge = true)
         end
     end
     return dms
+end
+
+"""
+transform indexed segmentation image to RGB image with random color label
+it is recommanded to reassign segment id to 1-N using function of segid1N!
+inputs:
+seg: segmentation, an indexed array
+is_1N: remap to 1-N or not
+
+Outputs:
+ret: rgb image array with a size of 3 x X x Y x Z
+"""
+function seg2rgb!(seg::Tseg, is_1N=true)
+    # relabel to 1-N
+    if is_1N
+        Nl = segid1N!(seg)
+    else
+        Nl = maximum(seg)
+    end
+
+    # create random color map
+    rc = rand(Float32, 3, Nl+1)
+    # black for 0 index
+    rc[1,:] = 0
+
+    # create RGB image
+    sx,sy,sz = size(seg)
+    ret = zeros(Float32, (3,sx,sy,sz))
+    # assign color value
+    for z = 1:sz
+        for y = 1:sy
+            for x = 1:sx
+                ret[:,x,y,z] = rc[:, seg[x,y,z]+1]
+            end
+        end
+    end
+    return ret
+end
+
+"""
+overlay segmentation to gray image using Alpha compositing
+https://en.wikipedia.org/wiki/Alpha_compositing
+Inputs:
+img: gray image array
+seg: segmentation, an indexed array
+alpha1: the alpha value of the image
+alpha2: the alpha value of the segmentation
+
+Outputs:
+ret: composited RGBA image array
+"""
+function seg_overlay_img!(img, seg, alpha1=0.5, alpha2=0.5)
+    @assert size(img)==size(seg)
+    @assert alpha1>0 && alpha1<1
+    @assert alpha2>0 && alpha2<1
+    sx,sy,sz = size(img)
+
+    # initialize the returned RGBA image
+    ret = zeros(Float32,(3,sx,sy,sz))
+
+    # colorful segmentation image
+    cseg = seg2rgb!(Tseg(seg))
+
+    # transform img to 0-1
+    fimg = Array{Float32,3}(img)
+    fimg = ( fimg-minimum(fimg) ) ./ (maximum(fimg) - minimum(fimg))
+
+    for z in 1:sz
+        for y in 1:sy
+            for x in 1:sx
+                if seg[x,y,z]==0
+                    # completely transparent in boundary regions
+                    ret[1,x,y,z] = fimg[x,y,z]
+                    ret[2,x,y,z] = fimg[x,y,z]
+                    ret[3,x,y,z] = fimg[x,y,z]
+                else
+                    # only composite in non-boundary regions
+                    ret[1,x,y,z] = ( fimg[x,y,z]*alpha1 + cseg[1,x,y,z]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
+                    ret[2,x,y,z] = ( fimg[x,y,z]*alpha1 + cseg[2,x,y,z]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
+                    ret[3,x,y,z] = ( fimg[x,y,z]*alpha1 + cseg[3,x,y,z]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
+                end
+            end
+        end
+    end
+    return ret
 end

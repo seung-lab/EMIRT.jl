@@ -42,7 +42,7 @@ function union!( djsets::Tdjsets, sid1, sid2 )
 
     if rid1 == rid2
         # already in the same domain
-        return rid1
+        return
     end
 
     # reduce set number
@@ -50,11 +50,9 @@ function union!( djsets::Tdjsets, sid1, sid2 )
         # assign sid1 as the parent of sid2
         djsets.sets[ rid2 ] = rid1
         djsets.setsz[ rid1 ] += djsets.setsz[ rid2 ]
-        return rid1
     else
         djsets.sets[ rid1 ] = rid2
         djsets.setsz[ rid2 ] += djsets.setsz[ rid1 ]
-        return rid2
     end
 end
 
@@ -73,15 +71,16 @@ end
 # value is the number of voxels in that label
 typealias Tdlsz Dict{UInt32,UInt32}
 
-function get_pair_num(dlsz1::Tdlsz, dlsz2::Tdlsz)
-    n_same_pair = UInt32(0)
-    n_diff_pair = UInt32(0)
+"""
+compare two domain label sizes to get the number of same voxel pair and different voxel pair
+In default, it is foreground restricted.
+"""
+function get_pair_num(dlsz1::Tdlsz, dlsz2::Tdlsz, is_fr = true)
+    n_same_pair = Float32(0)
+    n_diff_pair = Float32(0)
     for (lid1, sz1) in dlsz1
-        if lid1==0
-            continue
-        end
         for (lid2, sz2) in dlsz2
-            if lid2==0
+            if is_fr && lid2==0
                 continue
             end
             if lid1 == lid2
@@ -96,7 +95,7 @@ function get_pair_num(dlsz1::Tdlsz, dlsz2::Tdlsz)
     return n_same_pair, n_diff_pair
 end
 
-# union dm2 to dm1, only dm1 was changed
+# union domain label size dict 2 to 1, only 1 was changed
 function union!( dlsz1::Tdlsz, dlsz2::Tdlsz )
     for (lid1, sz1) in dlsz1
         for (lid2, sz2) in dlsz2
@@ -109,8 +108,6 @@ function union!( dlsz1::Tdlsz, dlsz2::Tdlsz )
             end
         end
     end
-    # clear the dlsz2
-    dlsz2 = Dict()
 end
 
 # list of dictionary, each represents the label sizes
@@ -159,10 +156,10 @@ function union!(dms::Tdomains, rid1::UInt32, dlsz1::Tdlsz, rid2::UInt32, dlsz2::
     union!( dms.djsets, rid1, rid2 )
 
     # merge small one to big one
-    if dms.djsets.setsz[ rid1 ] < dms.djsets.setsz[ rid2 ]
-        union!(dms.dlszes[rid2], dms.dlszes[rid1])
-    else
+    if dms.djsets.setsz[ rid1 ] >= dms.djsets.setsz[ rid2 ]
         union!(dms.dlszes[rid1], dms.dlszes[rid2])
+    else
+        union!(dms.dlszes[rid2], dms.dlszes[rid1])
     end
 end
 

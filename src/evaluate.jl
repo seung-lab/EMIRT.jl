@@ -132,6 +132,8 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
 
     # number of non-boundary voxels of label
     nnb = Float32( countnz(lbl) )
+    # number of foreground pixel pairs
+    Np = nnb*(nnb-1)/2
 
     # initialize the true positive, false positive, true negative, false negative
     tps = zeros(Float32, size(thds))
@@ -148,11 +150,9 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
     println("done :)")
 
     # merge the voxels by traversing the sorted affinity edges
-    # thresholds index
-    ti = 1
     lbl_flat = lbl[:]
     for (a, vid1, vid2) in elst
-        # compute the number of pairs
+        # find the rood/segment id and the corresponding domain label sizes
         rid1, dlsz1 = find!(adms, vid1)
         rid2, dlsz2 = find!(adms, vid2)
         if rid1 == rid2
@@ -160,6 +160,7 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
             continue
         end
 
+        # get foreground restricted voxel pair number
         n_same_pair, n_diff_pair = get_pair_num(dlsz1, dlsz2)
         #println("n_same_pair: $(n_same_pair), \t n_diff_pair: $(n_diff_pair)")
         for i in 1:length(thds)
@@ -182,11 +183,11 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
     println("tns: $tns")
     println("fns: $fns")
     println("non-boundary voxel number: $nnb")
-    println("non-boundary voxel pair number: $(nnb*(nnb-1)/2)")
-    @assert tps + fps + tns + fns == ones(Float32,size(thds))* (nnb*(nnb-1)/2)
+    println("non-boundary voxel pair number: $(Np)")
+    @assert tps + fps + tns + fns == ones(Float32,size(thds))*Np
     # normalize the error
-    mes = fps / (nnb*(nnb-1))
-    ses = fns / (nnb*(nnb-1))
+    mes = fps / Np
+    ses = fns / Np
     # compute rand error
     res = mes + ses
     return res, mes, ses

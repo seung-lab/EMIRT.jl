@@ -144,6 +144,7 @@ function affs2edgelist(affs::Taffs, is_sort=true)
     elst = Array{Tuple{Float32,UInt32,UInt32},1}([])
     # get the sizes
     sx,sy,sz,sc = size(affs)
+    @assert sc==3
 
     for z in 1:sz
         for y in 1:sy
@@ -151,7 +152,7 @@ function affs2edgelist(affs::Taffs, is_sort=true)
                 vid1 = x + (y-1)*sx + (z-1)*sx*sy
                 # x affinity
                 if x>1
-                    vid2 = x + (y-1)*sx + (z-1)*sx*sy
+                    vid2 = x-1 + (y-1)*sx + (z-1)*sx*sy
                     push!(elst, (affs[x,y,z,1], vid1, vid2))
                 end
                 # y affinity

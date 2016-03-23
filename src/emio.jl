@@ -7,8 +7,9 @@ export img2svg, imread, imsave
 function imread(fname)
     print("reading file: $(fname) ......")
     if contains(fname, ".h5") || contains(fname, ".hdf5")
+        ret =  h5read(fname, "/main")
         println("done :)")
-        return h5read(fname, "/main")
+        return ret
     elseif contains(fname, ".tif")
         vol = emio.imread(fname)
         # transpose the dims from z,y,x to x,y,z
