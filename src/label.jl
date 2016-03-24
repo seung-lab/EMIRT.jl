@@ -293,7 +293,7 @@ function seg2rgb!(seg::Tseg, is_1N=true)
     # create random color map
     rc = rand(Float32, 3, Nl+1)
     # black for 0 index
-    rc[1,:] = 0
+    rc[:,1] = 0
 
     # create RGB image
     sx,sy,sz = size(seg)
