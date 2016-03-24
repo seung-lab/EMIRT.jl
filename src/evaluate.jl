@@ -1,7 +1,6 @@
-export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors
+export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors, segerror, patch_segerror
 
 using PyCall
-@pyimport segerror.error as serror
 
 include("affinity.jl")
 include("label.jl")
@@ -23,6 +22,7 @@ function seg_fr_rand_error( seg::Tseg, lbl::Tseg, dim=3 )
     end
 
     # also get merge and split score
+    @pyimport segerror.error as serror
     re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
     return re, rem, res
 end
@@ -35,7 +35,7 @@ function seg_fr_rand_f_score( seg::Tseg, lbl::Tseg, dim=3 )
         lbl = relabel_seg( lbl, 2 )
     end
 
-    #
+    @pyimport segerror.error as serror
     rf, rfm, rfs = serror.seg_fr_rand_f_score(seg, lbl, true, true)
 
     return rf, rfm, rfs
@@ -196,13 +196,16 @@ end
 
 """
 compute foreground restricted segment error by comparing segmentation with ground truth
+it is recommanded to reassign the segment id to 1,2,3,...,N using function of segid1N!
 """
-function segerror!(seg, lbl)
+function segerror(seg, lbl)
     @assert size(seg)==size(lbl)
 
     # reassigns the segment ID to 1-N to avoid huge sparse matrix
-    Ns = reassign_segid1N!(seg)
-    Nl = reassign_segid1N!(lbl)
+    #Ns = reassign_segid1N!(seg)
+    #Nl = reassign_segid1N!(lbl)
+    Ns = maximum(seg)
+    Nl = maximum(lbl)
 
     # initialize a sparse overlap matrix
     om = spzeros(Float32, Ns+1, Nl+1)
@@ -247,4 +250,71 @@ function segerror!(seg, lbl)
     rfs = 2*som / (ssi + stj)
 
     return re, rem, res, rfs, rfsm, rfss
+end
+
+"""
+patch-based segmentation error
+`Inputs`
+`seg`: segmentation, indexed array
+`lbl`: ground true label, indexed array
+`ptsz`: patch size
+
+`Outputs`
+`re`: rand error
+`rem`: rand error of mergers
+`res`: rand error of splitters
+`rfs`: rand f score
+`rfsm`: rand f score of mergers
+`rfss`: rand f score of splitters
+"""
+function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
+    @assert size(seg)==size(lbl)
+    @assert patchsize < size(seg)
+
+    sx,sy,sz = size(seg)
+
+    # number of patches
+    Np = 0
+    # the patch-based errors
+    pre = 0;  prem = 0;  pres = 0;
+    prfs = 0; prfsm = 0; prfss = 0;
+    # get patches and measure
+    for z1 in 1:step[3]:sz
+        for y1 in 1:step[2]:sy
+            for x1 in 1:step[1]:sx
+                # get patch
+                z2 = z+ptsz[3]-1
+                if z2 > sz
+                    z2 = sz
+                    z1 = z2 - ptsz[3] + 1
+                end
+
+                y2 = z+ptsz[2]-1
+                if y2 > sy
+                    y2 = sz
+                    y1 = y2 - ptsz[2] + 1
+                end
+
+                x2 = x+ptsz[1]-1
+                if x2 > sx
+                    x2 = sz
+                    x1 = x2 - ptsz[1] + 1
+                end
+                # patch of seg and lbl
+                pseg = seg[x1:x2,y1:y2,z1:z2]
+                plbl = lbl[x1:x2,y1:y2,z1:z2]
+                # compute the error
+                re, rem, res, rfs, rfsm, rfss = segerror(pseg, plbl)
+                # increas the errors
+                pre += re;   prem += rem;   pres += res;
+                prfs += rfs; prfsm += rfsm; prfss += rfss;
+                # increase the number of patches
+                Np += 1
+            end
+        end
+    end
+    # normalize across all the patches
+    pre /= Np;  prem /= Np;  pres /= Np;
+    prfs /= Np; prfsm /= Np; prfss /= Np;
+    return pre, prem, pres, prfs, prfsm, prfss
 end

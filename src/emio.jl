@@ -1,6 +1,6 @@
 using HDF5
 using PyCall
-@pyimport emirt.emio as emio
+using Compose
 
 export img2svg, imread, imsave
 
@@ -11,7 +11,8 @@ function imread(fname)
         println("done :)")
         return ret
     elseif contains(fname, ".tif")
-        vol = emio.imread(fname)
+        @pyimport tifffile
+        vol = tifffile.imread(fname)
         # transpose the dims from z,y,x to x,y,z
         vol = permutedims(vol, Array(ndims(vol):-1:1))
         println("done :)")
@@ -39,7 +40,6 @@ function imsave(vol::Array, fname, is_overwrite=true)
 end
 
 function img2svg( img::Array, fname )
-    using Compose
     # reshape to vector
     v = reshape( img, length(img))
     draw(SVG(fname, 3inch, 3inch), compose(context(), bitmap("image/png", Array{UInt8}(v), 0, 0, 1, 1)))
