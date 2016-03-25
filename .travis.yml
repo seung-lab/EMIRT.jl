@@ -1,0 +1,19 @@
+language: julia
+os: linux
+
+julia:
+        - 0.4
+
+notifications:
+        email: false
+
+before_install:
+        - sudo apt-get -qq update
+
+install:
+        - sudo apt-get install -y python-tifffile
+        - git clone https://github.com/seung-lab/EMIRT.jl.git
+        - mv EMIRT.jl ~/.julia/v0.4/EMIRT
+
+script:
+        - julia -e `Pkg.test("EMIRT")`

@@ -86,10 +86,11 @@ the returned dictionary will be
 pd['f'] = "label.h5"
 pd['r'] = [2,4,5,6]
 """
-function argparser!(args, pd=Dict() )
+function argparser!(pd=Dict() )
+    println("default parameters: $(pd)")
     # argument table, two rows
-    @assert length(args) % 2 ==0
-    argtbl = reshape(args, 2,Int64( length(args)/2))
+    @assert length(ARGS) % 2 ==0
+    argtbl = reshape(ARGS, 2,Int64( length(ARGS)/2))
 
     # traverse all the argument table columns
     for c in 1:size(argtbl,2)

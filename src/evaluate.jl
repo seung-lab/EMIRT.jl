@@ -6,44 +6,10 @@ include("affinity.jl")
 include("label.jl")
 include("domains.jl")
 
-# measure 2D rand error of affinity
-function affs_fr_rand_error(affs::Taffs, lbl::Tseg, dim=3, thd=0.5)
-    @assert dim==3 || dim==2
-    seg = aff2seg(affs, dim, thd)
-    return seg_fr_rand_error( seg, lbl, dim )
-end
-
-# rand error of segmentation
-function seg_fr_rand_error( seg::Tseg, lbl::Tseg, dim=3 )
-    @assert dim==2 || dim==3
-    if dim==2
-        # relabel in 2D
-        lbl = relabel_seg(lbl, 2)
-    end
-
-    # also get merge and split score
-    @pyimport segerror.error as serror
-    re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
-    return re, rem, res
-end
-
-# rand F score of segmentation
-function seg_fr_rand_f_score( seg::Tseg, lbl::Tseg, dim=3 )
-    @assert dim==3 || dim==2
-    if dim == 2
-        # relabel in 2D
-        lbl = relabel_seg( lbl, 2 )
-    end
-
-    @pyimport segerror.error as serror
-    rf, rfm, rfs = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-
-    return rf, rfm, rfs
-end
-
-
 # rand error curve
-function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="connected_component", redist = "uniform")
+function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, redist = "uniform")
+    @assert size(affs)[1:3] == size(lbl)
+    sx,sy,sz = size(lbl)
     # transform to uniform distribution
     if redist == "uniform"
         affs = affs2uniform(affs);
@@ -71,7 +37,7 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="c
     end
     lbl = Array{UInt64,3}(lbl)
 
-    segs = zeros(UInt32, (length(thds), size(lbl,1), size(lbl,2), size(lbl,3)))
+    segs = zeros(UInt32, (length(thds), sx,sy,sz))
 
     # if watershed, get watershed domains and mst first
     if seg_method == "watershed" && dim==3
@@ -90,23 +56,40 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="c
             seg = aff2seg( affs, dim, thds[i] )
         end
 
-        seg = Array{UInt64,3}(seg)
+        #seg = Array{UInt64,3}(seg)
         segs[i,:,:,:]  = seg
         # rand f score and rand error
         if dim==3
+            @pyimport segerror.error as serror
             rf[i], rfm[i], rfs[i] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
             re[i], rem[i], res[i] = serror.seg_fr_rand_error(seg, lbl, true, true)
+            # if is_patch
+            #     @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = patch_segerror(seg, lbl)
+            # else
+            #     @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = segerror(seg, lbl)
+            # end
         else
             # 2D rand error and rand f score
-            for z in 1:size(seg,3)
-                rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-                rez, remz, resz = serror.seg_fr_rand_error(seg, lbl, true, true)
+            for z in 1:sz
+                if is_patch
+                    @time rez, remz, resz, rfz, rfmz, rfsz = patch_segerror(seg[:,:,z], lbl[:,:,z])
+                    # @pyimport segerror.error as serror
+                    # rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
+                    # rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
+                else
+                    @pyimport segerror.error as serror
+                    rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
+                    rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
+                    # @time rez, remz, resz, rfz, rfmz, rfsz = segerror(seg[:,:,z], lbl[:,:,z])
+                end
+                #println("rand error: $(rez), rand f score: $(rfz)")
                 rf[i] += rfz; rfm[i] += rfmz; rfs[i] += rfsz;
                 re[i] += rez; rem[i] += remz; res[i] += resz;
             end
-            rf[i] /= size(seg,3); rfm[i] /= size(seg,3); rfs[i] /= size(seg,3);
-            re[i] /= size(seg,3); rem[i] /= size(seg,3); res[i] /= size(seg,3);
+            rf[i] /= sz; rfm[i] /= sz; rfs[i] /= sz;
+            re[i] /= sz; rem[i] /= sz; res[i] /= sz;
         end
+        println("rand error: $(re[i]), rand f score: $(rf[i])")
     end
     # print the scores
     println("rand f score: $rf")
@@ -197,27 +180,39 @@ end
 """
 compute foreground restricted segment error by comparing segmentation with ground truth
 it is recommanded to reassign the segment id to 1,2,3,...,N using function of segid1N!
+
+`Note that this function does not pass the test yet!!!`
 """
-function segerror(seg, lbl)
+function segerror(seg_in, lbl_in)
+    seg = copy(seg_in)
+    lbl = copy(lbl_in)
+
     @assert size(seg)==size(lbl)
+    if ndims(seg) == 2
+        sx,sy = size(seg)
+        sz = 1
+        seg = reshape(seg, (sx,sy,sz))
+    else
+        sx,sy,sz = size(seg)
+    end
 
     # reassigns the segment ID to 1-N to avoid huge sparse matrix
-    #Ns = reassign_segid1N!(seg)
-    #Nl = reassign_segid1N!(lbl)
-    Ns = maximum(seg)
-    Nl = maximum(lbl)
+    Ns = segid1N!(seg)
+    Nl = segid1N!(lbl)
+    #Ns = maximum(seg)
+    #Nl = maximum(lbl)
 
     # initialize a sparse overlap matrix
     om = spzeros(Float32, Ns+1, Nl+1)
 
     # create overlap matrix
-    for z in 1:size(seg,3)
-        for y in 1:size(seg,2)
-            for x in 1:size(seg,1)
+    for z in 1:sz
+        for y in 1:sy
+            for x in 1:sx
                 # foreground restriction
-                if lbl[z,y,x]>0
+                if lbl[x,y,z]>0
                     # the index 1 represent the 0 label
-                    om[seg[z,y,x]+1, lbl[z,y,x]+1] += 1
+                    om[seg[x,y,z]+1, lbl[x,y,z]+1] += 1
                 end
             end
         end
@@ -244,12 +239,12 @@ function segerror(seg, lbl)
     re = rem + res
 
     # rand f score of mergers and splitters
-    rfsm = som/ssi
-    rfss = som/stj
+    rfm = som/ssi
+    rfs = som/stj
     # harmonic mean
-    rfs = 2*som / (ssi + stj)
+    rf = 2*som / (ssi + stj)
 
-    return re, rem, res, rfs, rfsm, rfss
+    return re, rem, res, rf, rfm, rfs
 end
 
 """
@@ -263,9 +258,9 @@ patch-based segmentation error
 `re`: rand error
 `rem`: rand error of mergers
 `res`: rand error of splitters
-`rfs`: rand f score
-`rfsm`: rand f score of mergers
-`rfss`: rand f score of splitters
+`rf`: rand f score
+`rfm`: rand f score of mergers
+`rfs`: rand f score of splitters
 """
 function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
     @assert size(seg)==size(lbl)
@@ -276,8 +271,8 @@ function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
     # number of patches
     Np = 0
     # the patch-based errors
-    pre = 0;  prem = 0;  pres = 0;
-    prfs = 0; prfsm = 0; prfss = 0;
+    pre = 0; prem = 0; pres = 0;
+    prf = 0; prfm = 0; prfs = 0;
     # get patches and measure
     for z1 in 1:step[3]:sz
         for y1 in 1:step[2]:sy
@@ -291,30 +286,33 @@ function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
 
                 y2 = z+ptsz[2]-1
                 if y2 > sy
-                    y2 = sz
+                    y2 = sy
                     y1 = y2 - ptsz[2] + 1
                 end
 
                 x2 = x+ptsz[1]-1
                 if x2 > sx
-                    x2 = sz
+                    x2 = sx
                     x1 = x2 - ptsz[1] + 1
                 end
                 # patch of seg and lbl
                 pseg = seg[x1:x2,y1:y2,z1:z2]
                 plbl = lbl[x1:x2,y1:y2,z1:z2]
                 # compute the error
-                re, rem, res, rfs, rfsm, rfss = segerror(pseg, plbl)
+                # re, rem, res, rf, rfm, rfs = segerror(pseg, plbl)
+                @pyimport segerror.error as serror
+                rf, rfm, rfs = serror.seg_fr_rand_f_score(seg, lbl, true, true)
+                re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
                 # increas the errors
-                pre += re;   prem += rem;   pres += res;
-                prfs += rfs; prfsm += rfsm; prfss += rfss;
+                pre += re; prem += rem; pres += res;
+                prf += rf; prfm += rfm; prfs += rfs;
                 # increase the number of patches
                 Np += 1
             end
         end
     end
     # normalize across all the patches
-    pre /= Np;  prem /= Np;  pres /= Np;
-    prfs /= Np; prfsm /= Np; prfss /= Np;
-    return pre, prem, pres, prfs, prfsm, prfss
+    pre /= Np; prem /= Np; pres /= Np;
+    prf /= Np; prfm /= Np; prfs /= Np;
+    return pre, prem, pres, prf, prfm, prfs
 end

@@ -85,9 +85,8 @@ end
 function wsseg(affs, dim = 3, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100, thd_rt=0.5)
     @assert dim==2 || dim==3
     if dim==2
-        return wsset2d(affs, low, high, thresholds, dust_size, thd_rt)
+        return wsseg2d(affs, low, high, thresholds, dust_size, thd_rt)
     else
-        seg = zeros(UInt32, size(affs)[1:3] )
         seg, rt = watershed(affs, low, high, thresholds, dust_size)
         seg = mergert(seg, rt, thd_rt)
         return seg
