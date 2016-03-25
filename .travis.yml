@@ -13,9 +13,10 @@ before_install:
         - sudo apt-get -qq update
 
 install:
-        - sudo apt-get install -y python-numpy python-tifffile python-matplotlib python-h5py
+        - sudo apt-get install pip
+        - sudo pip install python-numpy python-tifffile python-matplotlib python-h5py
         - git clone https://github.com/seung-lab/EMIRT.jl.git
         - mv EMIRT.jl ~/.julia/v0.4/EMIRT
 
 script:
-        - julia -e `Pkg.test("EMIRT")`
+        - julia -e 'Pkg.test("EMIRT")'
