@@ -20,6 +20,7 @@ install:
         - mv EMIRT.jl ~/.julia/v0.4/EMIRT
         - git clone https://github.com/seung-lab/Watershed.jl.git
         - mv Watershed.jl ~/.julia/0.4/Watershed
+        #- julia -e 'Pkg.add("HDF5"); Pkg.add("Compose")'
 
 script:
         - julia -e 'Pkg.test("EMIRT")'
