@@ -17,13 +17,13 @@ install:
         - sudo pip install --upgrade pip
         - sudo apt-get install -y gcc julia 
         - sudo apt-get install -y python-numpy python-matplotlib python-h5py
-        #- sudo pip install numpy matplotlib h5py
         - sudo pip install tifffile
+        - julia -e 'Pkg.add("HDF5"); Pkg.add("Compose")'
         - git clone https://github.com/seung-lab/EMIRT.jl.git
         - mv EMIRT.jl ~/.julia/v0.4/EMIRT
         - git clone https://github.com/seung-lab/Watershed.jl.git
         - mv Watershed.jl ~/.julia/0.4/Watershed
-        #- julia -e 'Pkg.add("HDF5"); Pkg.add("Compose")'
+        
 
 script:
         - julia -e 'Pkg.test("EMIRT")'
