@@ -15,8 +15,8 @@ before_install:
 install:
         - sudo apt-get install python2.7 python2.7-dev python-pip
         - sudo pip install --upgrade pip
-        - sudo apt-get install -qq gcc
-        - sudo apt-get install python-numpy python-matplotlib python-h5py
+        - sudo apt-get install -y gcc julia 
+        - sudo apt-get install -y python-numpy python-matplotlib python-h5py
         #- sudo pip install numpy matplotlib h5py
         - sudo pip install tifffile
         - git clone https://github.com/seung-lab/EMIRT.jl.git
