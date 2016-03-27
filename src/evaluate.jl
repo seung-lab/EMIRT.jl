@@ -177,13 +177,87 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
 end
 
 
+function segerror(seg, lbl, is_fr=true)
+    om = Dict{Tuple=>UInt32}()
+    si = Dict{UInt32=>UInt32}()
+    ti = Dict{UInt32=>UInt32}()
+
+    # number of voxels
+    N = 0
+    for iter in eachindex(lbl)
+        lid = lbl[iter]
+        # foreground restriction
+        if is_fr && lid == 0
+            continue
+        end
+        N += 1
+        if haskey(ti, lid)
+            ti[lid] += 1
+        else
+            ti[lid] = 1
+        end
+
+        sid = seg[iter]
+        if haskey(si, sid)
+            si[sid] += 1
+        else
+            si[sid] = 1
+        end
+
+        if haskey(om, (sid,lid))
+            om[(sid,lid)] += 1
+        else
+            om[(sid,lid)] = 1
+        end
+    end
+
+    # compute the errors
+    ssum = 0
+    for v in values(si)
+        ssum += v*(v-1)/2
+    end
+    lsum = 0
+    for v in values(ti)
+        lsum += v*(v-1)/2
+    end
+    omsum = 0
+    for v in values(om)
+        omsum += v*(v-1)/2
+    end
+
+    # rand error
+    rem = (ssum -omsum) / (N*(N-1)/2)
+    res = (lsum -omsum) / (N*(N-1)/2)
+    re = rem + ses
+
+    # compute the errors
+    ssum = 0
+    for v in values(si)
+        ssum += v*v/2
+    end
+    lsum = 0
+    for v in values(ti)
+        lsum += v*v/2
+    end
+    omsum = 0
+    for v in values(om)
+        omsum += v*v/2
+    end
+
+    # rand f score
+    rfm = omsum / ssum
+    rfs = omsum / lsum
+    rf = 2*omsum / (ssum + lsum)
+end
+
+
 """
 compute foreground restricted segment error by comparing segmentation with ground truth
 it is recommanded to reassign the segment id to 1,2,3,...,N using function of segid1N!
 
 `Note that this function does not pass the test yet!!!`
 """
-function segerror(seg_in, lbl_in)
+function segerror_V1(seg_in, lbl_in)
     seg = copy(seg_in)
     lbl = copy(lbl_in)
 
@@ -221,29 +295,30 @@ function segerror(seg_in, lbl_in)
     # number of non-zero voxels
     N = Float32( countnz(lbl) )
 
-    # normalize the overlap matrix
-    om = om / N
-
     # compute si and tj using cumulative sum
     si = cumsum(om, 1)
     tj = cumsum(om, 2)
+
+    # building blocks of error metrics
+    som = sum( om.*(om-1)/2 )
+    ssi = sum(si.*(si-1)/2)
+    stj = sum(tj.*(tj-1)/2)
+
+    # rand error of mergers and splitters
+    rem = (ssi - som) / (N*(N-1)/2)
+    res = (stj - som) / (N*(N-1)/2)
+    re = rem + res
 
     # building blocks of error metrics
     som = sum( om.^2 )
     ssi = sum(si.^2)
     stj = sum(tj.^2)
 
-    # rand error of mergers and splitters
-    rem = ssi - som
-    res = stj - som
-    re = rem + res
-
     # rand f score of mergers and splitters
     rfm = som/ssi
     rfs = som/stj
     # harmonic mean
     rf = 2*som / (ssi + stj)
-
     return re, rem, res, rf, rfm, rfs
 end
 
