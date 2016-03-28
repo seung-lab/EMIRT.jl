@@ -228,7 +228,7 @@ function segerror(seg, lbl, is_fr=true)
     # rand error
     rem = (ssum -omsum) / (N*(N-1)/2)
     res = (lsum -omsum) / (N*(N-1)/2)
-    re = rem + ses
+    re = rem + res
 
     # compute the errors
     ssum = 0
@@ -248,6 +248,7 @@ function segerror(seg, lbl, is_fr=true)
     rfm = omsum / ssum
     rfs = omsum / lsum
     rf = 2*omsum / (ssum + lsum)
+    return re, rem, res, rf, rfm, rfs
 end
 
 
