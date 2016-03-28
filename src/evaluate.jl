@@ -178,9 +178,9 @@ end
 
 
 function segerror(seg, lbl, is_fr=true)
-    om = Dict{Tuple=>UInt32}()
-    si = Dict{UInt32=>UInt32}()
-    ti = Dict{UInt32=>UInt32}()
+    om = Dict{Tuple{UInt32,UInt32},UInt32}()
+    si = Dict{UInt32,UInt32}()
+    ti = Dict{UInt32,UInt32}()
 
     # number of voxels
     N = 0
