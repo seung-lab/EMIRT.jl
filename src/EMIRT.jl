@@ -2,6 +2,11 @@ VERSION >=v"0.4.0-dev+6521" && __precompile__()
 
 module EMIRT
 
+# use the maximum cores for parallel computation
+if nprocs() < CPU_CORES
+    addprocs(CPU_CORES - nprocs())
+end
+
 include("domains.jl")
 include("affinity.jl")
 #include("boundary.jl")

@@ -177,10 +177,10 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
 end
 
 
-function segerror(seg, lbl, is_fr=true)
+function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=false)
     om = Dict{Tuple{UInt32,UInt32},UInt32}()
     si = Dict{UInt32,UInt32}()
-    ti = Dict{UInt32,UInt32}()
+    li = Dict{UInt32,UInt32}()
 
     # number of voxels
     N = 0
@@ -191,10 +191,10 @@ function segerror(seg, lbl, is_fr=true)
             continue
         end
         N += 1
-        if haskey(ti, lid)
-            ti[lid] += 1
+        if haskey(li, lid)
+            li[lid] += 1
         else
-            ti[lid] = 1
+            li[lid] = 1
         end
 
         sid = seg[iter]
@@ -212,37 +212,21 @@ function segerror(seg, lbl, is_fr=true)
     end
 
     # compute the errors
-    ssum = 0
-    for v in values(si)
-        ssum += v*(v-1)/2
-    end
-    lsum = 0
-    for v in values(ti)
-        lsum += v*(v-1)/2
-    end
-    omsum = 0
-    for v in values(om)
-        omsum += v*(v-1)/2
+    if is_selfpair
+        ssum  = sum(pmap(x->x*x/2, values(si)))
+        lsum  = sum(pmap(x->x*x/2, values(li)))
+        omsum = sum(pmap(x->x*x/2, values(om)))
+
+    else
+        ssum  = sum(pmap(x->x*(x-1)/2, values(si)))
+        lsum  = sum(pmap(x->x*(x-1)/2, values(li)))
+        omsum = sum(pmap(x->x*(x-1)/2, values(om)))
     end
 
     # rand error
     rem = (ssum -omsum) / (N*(N-1)/2)
     res = (lsum -omsum) / (N*(N-1)/2)
     re = rem + res
-
-    # compute the errors
-    ssum = 0
-    for v in values(si)
-        ssum += v*v/2
-    end
-    lsum = 0
-    for v in values(ti)
-        lsum += v*v/2
-    end
-    omsum = 0
-    for v in values(om)
-        omsum += v*v/2
-    end
 
     # rand f score
     rfm = omsum / ssum
