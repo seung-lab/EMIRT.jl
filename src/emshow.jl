@@ -4,6 +4,7 @@ using PyPlot
 include("label.jl")
 
 function random_color_show( seg )
+    seg2 = seg
     if ndims(seg)==3
         seg2 = seg[:,:,1]
     end

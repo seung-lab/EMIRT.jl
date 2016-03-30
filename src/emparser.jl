@@ -1,14 +1,5 @@
 export configparser, argparser!
 
-function eparse(s)
-    if contains(s, "/") || typeof(parse(s))==Symbol
-        # directory or containing alphabet not all number
-        return s
-    else
-        return parse(s)
-    end
-end
-
 function str2list(s)
     ret = []
     for e in split(s, ',')
@@ -34,13 +25,15 @@ function autoparse(s)
         return str2array(s)
     elseif contains(s, ",")
         return str2list(s)
-    elseif s=="yes" || s=="Yes"|| s=="y" || s=="true" || s=="True"
+    elseif s=="yes" || s=="Yes"|| s=="y" || s=="Y" || s=="true" || s=="True"
         return true
-    elseif s=="no" || s=="No" || s=="n" || s=="false" || s=="False"
+    elseif s=="no" || s=="No" || s=="n" || s=="N" || s=="false" || s=="False"
         return false
+    elseif contains(s, "/") || ismatch(r"^[A-z]", s) || typeof(parse(s))==Symbol || typeof(parse(s)) == Expr
+        # directory or containing alphabet not all number
+        return s
     else
-        # automatic transformation
-        return eparse(s)
+        return parse(s)
     end
 end
 
@@ -100,4 +93,5 @@ function argparser!(pd=Dict() )
         v = autoparse( argtbl[2,c] )
         pd[k] = v
     end
+    println("parameters after command line parsing: $(pd)")
 end

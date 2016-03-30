@@ -1,6 +1,6 @@
 export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors, segerror, patch_segerror
 
-using PyCall
+#using PyCall
 
 include("affinity.jl")
 include("label.jl")
@@ -60,14 +60,14 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
         segs[i,:,:,:]  = seg
         # rand f score and rand error
         if dim==3
-            @pyimport segerror.error as serror
-            rf[i], rfm[i], rfs[i] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-            re[i], rem[i], res[i] = serror.seg_fr_rand_error(seg, lbl, true, true)
-            # if is_patch
-            #     @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = patch_segerror(seg, lbl)
-            # else
-            #     @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = segerror(seg, lbl)
-            # end
+            #@pyimport segerror.error as serror
+            #rf[i], rfm[i], rfs[i] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
+            #re[i], rem[i], res[i] = serror.seg_fr_rand_error(seg, lbl, true, true)
+            if is_patch
+                @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = patch_segerror(seg, lbl)
+            else
+                @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = segerror(seg, lbl)
+            end
         else
             # 2D rand error and rand f score
             for z in 1:sz
@@ -77,10 +77,10 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
                     # rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
                     # rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
                 else
-                    @pyimport segerror.error as serror
-                    rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
-                    rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
-                    # @time rez, remz, resz, rfz, rfmz, rfsz = segerror(seg[:,:,z], lbl[:,:,z])
+                    # @pyimport segerror.error as serror
+                    # rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
+                    # rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
+                    @time rez, remz, resz, rfz, rfmz, rfsz = segerror(seg[:,:,z], lbl[:,:,z])
                 end
                 #println("rand error: $(rez), rand f score: $(rfz)")
                 rf[i] += rfz; rfm[i] += rfmz; rfs[i] += rfsz;
@@ -322,11 +322,20 @@ patch-based segmentation error
 `rfm`: rand f score of mergers
 `rfs`: rand f score of splitters
 """
-function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
-    @assert size(seg)==size(lbl)
-    @assert patchsize < size(seg)
+function patch_segerror(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
+    @assert size(seg_in)==size(lbl_in)
+    # @assert Tuple(ptsz) < size(seg)
 
-    sx,sy,sz = size(seg)
+    if ndims(seg_in)==2
+        sx,sy = size(seg_in)
+        sz = 1
+        seg = reshape(seg_in, (sx,sy,sz))
+        lbl = reshape(lbl_in, (sx,sy,sz))
+    else
+        sx,sy,sz = size(seg_in)
+        seg = seg_in
+        lbl = lbl_in
+    end
 
     # number of patches
     Np = 0
@@ -338,19 +347,19 @@ function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
         for y1 in 1:step[2]:sy
             for x1 in 1:step[1]:sx
                 # get patch
-                z2 = z+ptsz[3]-1
+                z2 = z1+ptsz[3]-1
                 if z2 > sz
                     z2 = sz
                     z1 = z2 - ptsz[3] + 1
                 end
 
-                y2 = z+ptsz[2]-1
+                y2 = y1+ptsz[2]-1
                 if y2 > sy
                     y2 = sy
                     y1 = y2 - ptsz[2] + 1
                 end
 
-                x2 = x+ptsz[1]-1
+                x2 = x1+ptsz[1]-1
                 if x2 > sx
                     x2 = sx
                     x1 = x2 - ptsz[1] + 1
@@ -359,10 +368,10 @@ function patch_segerror(seg, lbl, ptsz=[100,100,1], step=[100,100,1])
                 pseg = seg[x1:x2,y1:y2,z1:z2]
                 plbl = lbl[x1:x2,y1:y2,z1:z2]
                 # compute the error
-                # re, rem, res, rf, rfm, rfs = segerror(pseg, plbl)
-                @pyimport segerror.error as serror
-                rf, rfm, rfs = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-                re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
+                re, rem, res, rf, rfm, rfs = segerror(pseg, plbl)
+                # @pyimport segerror.error as serror
+                # rf, rfm, rfs = serror.seg_fr_rand_f_score(seg, lbl, true, true)
+                # re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
                 # increas the errors
                 pre += re; prem += rem; pres += res;
                 prf += rf; prfm += rfm; prfs += rfs;
