@@ -1,33 +1,41 @@
 export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors, segerror, patch_segerror
 
-#using PyCall
-
 include("affinity.jl")
 include("label.jl")
 include("domains.jl")
 
+# use a log version which is faster and more accurate
+import Base.Math.JuliaLibm.log
+
 # rand error curve
-function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, redist = "uniform")
+function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, is_remap=true)
     @assert size(affs)[1:3] == size(lbl)
     sx,sy,sz = size(lbl)
     # transform to uniform distribution
-    if redist == "uniform"
+    if is_remap
         affs = affs2uniform(affs);
     end
+    # initialize the curve
+    ret = Dict{ASCIIString, Vector{Float32}}()
+
     # thresholds
     if seg_method=="connected_component"
-        thds = Array( 0 : step : 1 )
+        ret["thds"] = Vector{Float32}( 0 : step : 1 )
     else
-        thds = Array( 0 : step : 0.9)
+        ret["thds"] = Vector{Float32}( 0 : step : 0.9)
     end
-    # rand error
-    re = zeros(thds)
-    rem = zeros(thds)
-    res = zeros(thds)
+    # rand index
+    ret["ri"] = zeros(thds)
+    ret["rim"] = zeros(thds)
+    ret["ris"] = zeros(thds)
     # rand f score
-    rf =  zeros(thds)
-    rfm = zeros(thds)
-    rfs = zeros(thds)
+    ret["rf"] =  zeros(thds)
+    ret["rfm"] = zeros(thds)
+    ret["rfs"] = zeros(thds)
+    # information theory metrics
+    ret["VIFS"] = zeros(thds)
+    ret["VIFSm"] = zeros(thds)
+    ret["VIFSs"] = zeros(thds)
 
     @assert seg_method=="connected_component" || seg_method=="watershed"
     # handle the dimension
@@ -56,45 +64,40 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
             seg = aff2seg( affs, dim, thds[i] )
         end
 
-        #seg = Array{UInt64,3}(seg)
         segs[i,:,:,:]  = seg
         # rand f score and rand error
         if dim==3
-            #@pyimport segerror.error as serror
-            #rf[i], rfm[i], rfs[i] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-            #re[i], rem[i], res[i] = serror.seg_fr_rand_error(seg, lbl, true, true)
             if is_patch
-                @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = patch_segerror(seg, lbl)
+                @time ed = patch_segerror(seg, lbl)
             else
-                @time re[i], rem[i], res[i], rf[i], rfm[i], rfs[i] = segerror(seg, lbl)
+                @time ed = segerror(seg, lbl)
+            end
+            # get value
+            for k in keys
+                ret[k][i] = ed[k]
             end
         else
             # 2D rand error and rand f score
             for z in 1:sz
                 if is_patch
-                    @time rez, remz, resz, rfz, rfmz, rfsz = patch_segerror(seg[:,:,z], lbl[:,:,z])
-                    # @pyimport segerror.error as serror
-                    # rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
-                    # rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
+                    @time edz = patch_segerror(seg[:,:,z], lbl[:,:,z])
                 else
-                    # @pyimport segerror.error as serror
-                    # rfz, rfmz, rfsz = serror.seg_fr_rand_f_score(seg[:,:,z], lbl[:,:,z], true, true)
-                    # rez, remz, resz = serror.seg_fr_rand_error(seg[:,:,z], lbl[:,:,z], true, true)
-                    @time rez, remz, resz, rfz, rfmz, rfsz = segerror(seg[:,:,z], lbl[:,:,z])
+                    @time edz = segerror(seg[:,:,z], lbl[:,:,z])
                 end
-                #println("rand error: $(rez), rand f score: $(rfz)")
-                rf[i] += rfz; rfm[i] += rfmz; rfs[i] += rfsz;
-                re[i] += rez; rem[i] += remz; res[i] += resz;
+                # increase for each z
+                for k in keys(ret)
+                    ret[k][i] += edz[k]
+                end
             end
-            rf[i] /= sz; rfm[i] /= sz; rfs[i] /= sz;
-            re[i] /= sz; rem[i] /= sz; res[i] /= sz;
+            # get the average over Z
+            for k in keys(ret)
+                ret[k][i] /= sz
+            end
         end
-        println("rand error: $(re[i]), rand f score: $(rf[i])")
     end
     # print the scores
-    println("rand f score: $rf")
-    println("rand error: $re")
-    return thds, segs, rf, rfm, rfs, re, rem, res
+    @show ret
+    return ret
 end
 
 """
@@ -177,13 +180,15 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
 end
 
 
-function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=false)
-    om = Dict{Tuple{UInt32,UInt32},UInt32}()
-    si = Dict{UInt32,UInt32}()
-    li = Dict{UInt32,UInt32}()
+function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
+    ret = Dict{ASCIIString, Float32}()
+    # overlap matrix reprisented by dict
+    om = Dict{Tuple{UInt32,UInt32},Float32}()
+    si = Dict{UInt32,Float32}()
+    li = Dict{UInt32,Float32}()
 
     # number of voxels
-    N = 0
+    N = Float32(0)
     for iter in eachindex(lbl)
         lid = lbl[iter]
         # foreground restriction
@@ -215,96 +220,68 @@ function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=false)
     if is_selfpair
         ssum  = sum(pmap(x->x*x/2, values(si)))
         lsum  = sum(pmap(x->x*x/2, values(li)))
-        omsum = sum(pmap(x->x*x/2, values(om)))
+        TP = sum(pmap(x->x*x/2, values(om)))
+        # total number of voxel pair
+        Np = N*N/2
 
+        # information theory metrics
+        HS = - sum( pmap(x->x*log(x), values(si)) )
+        HT = - sum( pmap(x->x*log(x), values(li)) )
+        HST = Float32(0)
+        HTS = Float32(0)
+        IST = Float32(0)
+        HST = @parallel (-) for ((i::UInt32, j::UInt32),v::Float32) in om
+            v/Np * log( v/Np/li[j] )
+        end
+
+        HTS = @parallel (-) for ((i::UInt32, j::UInt32),v::Float32) in om
+            v/Np * log( v/Np/si[i] )
+        end
+
+        IST = @parallel (+) for ((i::UInt32, j::UInt32),v::Float32) in om
+            v/Np * log( v/Np / ( si[i] * li[j] ) )
+        end
+
+        # for (k::Tuple{UInt32,UInt32},v::Float32) in om
+        #     # segment id pair
+        #     (i::UInt32,j::UInt32) = k
+        #     pij = v/Np
+        #     HST -= pij * log( pij / li[j] )
+        #     HTS -= pij * log( pij / si[i] )
+        #     IST += pij * log( pij / (si[i] * li[j]) )
+        # end
+        ret["VI"] = HS + HT - 2*IST
+        ret["VIs"] = HST
+        ret["VIm"] = HTS
+        ret["VIS"] = - VI
+        ret["VIFSs"] = IST / HS
+        ret["VIFSm"] = IST / HT
+        ret["VIFS"] = 2*IST / (HT + HS)
     else
         ssum  = sum(pmap(x->x*(x-1)/2, values(si)))
         lsum  = sum(pmap(x->x*(x-1)/2, values(li)))
-        omsum = sum(pmap(x->x*(x-1)/2, values(om)))
+        TP = sum(pmap(x->x*(x-1)/2, values(om)))
+        # total number of voxel pair
+        Np = Float32( N*(N-1)/2 )
     end
+    FP = ssum - TP
+    FN = lsum - TP
+    TN = Np - TP - FP - FN
 
     # rand error
-    rem = (ssum -omsum) / (N*(N-1)/2)
-    res = (lsum -omsum) / (N*(N-1)/2)
-    re = rem + res
+    ret["res"] = FN / Np
+    ret["rem"] = FP / Np
+    ret["re"] = rem + res
+    # rand index
+    ret["ris"] = TN / Np
+    ret["rim"] = TP / Np
+    ret["ri"] = rim + ris
 
     # rand f score
-    rfm = omsum / ssum
-    rfs = omsum / lsum
-    rf = 2*omsum / (ssum + lsum)
-    return re, rem, res, rf, rfm, rfs
-end
-
-
-"""
-compute foreground restricted segment error by comparing segmentation with ground truth
-it is recommanded to reassign the segment id to 1,2,3,...,N using function of segid1N!
-
-`Note that this function does not pass the test yet!!!`
-"""
-function segerror_V1(seg_in, lbl_in)
-    seg = copy(seg_in)
-    lbl = copy(lbl_in)
-
-    @assert size(seg)==size(lbl)
-    if ndims(seg) == 2
-        sx,sy = size(seg)
-        sz = 1
-        seg = reshape(seg, (sx,sy,sz))
-    else
-        sx,sy,sz = size(seg)
-    end
-
-    # reassigns the segment ID to 1-N to avoid huge sparse matrix
-    Ns = segid1N!(seg)
-    Nl = segid1N!(lbl)
-    #Ns = maximum(seg)
-    #Nl = maximum(lbl)
-
-    # initialize a sparse overlap matrix
-    om = spzeros(Float32, Ns+1, Nl+1)
-
-    # create overlap matrix
-    for z in 1:sz
-        for y in 1:sy
-            for x in 1:sx
-                # foreground restriction
-                if lbl[x,y,z]>0
-                    # the index 1 represent the 0 label
-                    om[seg[x,y,z]+1, lbl[x,y,z]+1] += 1
-                end
-            end
-        end
-    end
-
-    # number of non-zero voxels
-    N = Float32( countnz(lbl) )
-
-    # compute si and tj using cumulative sum
-    si = cumsum(om, 1)
-    tj = cumsum(om, 2)
-
-    # building blocks of error metrics
-    som = sum( om.*(om-1)/2 )
-    ssi = sum(si.*(si-1)/2)
-    stj = sum(tj.*(tj-1)/2)
-
-    # rand error of mergers and splitters
-    rem = (ssi - som) / (N*(N-1)/2)
-    res = (stj - som) / (N*(N-1)/2)
-    re = rem + res
-
-    # building blocks of error metrics
-    som = sum( om.^2 )
-    ssi = sum(si.^2)
-    stj = sum(tj.^2)
-
-    # rand f score of mergers and splitters
-    rfm = som/ssi
-    rfs = som/stj
-    # harmonic mean
-    rf = 2*som / (ssi + stj)
-    return re, rem, res, rf, rfm, rfs
+    ret["rfs"] = TP / (TP + FN)
+    ret["rfm"] = TP / (TP + FP)
+    ret["rf"] = 2*TP / (2*TP + FP + FN)
+    return ret
 end
 
 """
@@ -315,9 +292,9 @@ patch-based segmentation error
 `ptsz`: patch size
 
 `Outputs`
-`re`: rand error
-`rem`: rand error of mergers
-`res`: rand error of splitters
+`ri`: rand index
+`rim`: rand index of mergers
+`ris`: rand index of splitters
 `rf`: rand f score
 `rfm`: rand f score of mergers
 `rfs`: rand f score of splitters
@@ -337,10 +314,16 @@ function patch_segerror(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
         lbl = lbl_in
     end
 
+    # initialize the evaluate result dict
+    ret = Dict{ASCIIString, Float32}()
+    ret["ri"] = 0;   ret["ris"] = 0;   ret["rim"] = 0;
+    ret["rf"] = 0;   ret["rfs"] = 0;   ret["rfm"] = 0;
+    ret["VIFS"] = 0; ret["VIFSs"] = 0; ret["VIFSm"] = 0;
+
     # number of patches
     Np = 0
     # the patch-based errors
-    pre = 0; prem = 0; pres = 0;
+    pri = 0; prim = 0; pris = 0;
     prf = 0; prfm = 0; prfs = 0;
     # get patches and measure
     for z1 in 1:step[3]:sz
@@ -368,20 +351,19 @@ function patch_segerror(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
                 pseg = seg[x1:x2,y1:y2,z1:z2]
                 plbl = lbl[x1:x2,y1:y2,z1:z2]
                 # compute the error
-                re, rem, res, rf, rfm, rfs = segerror(pseg, plbl)
-                # @pyimport segerror.error as serror
-                # rf, rfm, rfs = serror.seg_fr_rand_f_score(seg, lbl, true, true)
-                # re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
+                ed = segerror(pseg, plbl)
                 # increas the errors
-                pre += re; prem += rem; pres += res;
-                prf += rf; prfm += rfm; prfs += rfs;
+                for k in keys(ret)
+                    ret[k] += ed[k]
+                end
                 # increase the number of patches
                 Np += 1
             end
         end
     end
     # normalize across all the patches
-    pre /= Np; prem /= Np; pres /= Np;
-    prf /= Np; prfm /= Np; prfs /= Np;
-    return pre, prem, pres, prf, prfm, prfs
+    for k in keys(ret)
+        ret[k] /= Np
+    end
+    return ret
 end
