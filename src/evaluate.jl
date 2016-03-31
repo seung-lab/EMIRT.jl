@@ -20,11 +20,12 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
 
     # thresholds
     if seg_method=="connected_component"
-        ret["thds"] = Vector{Float32}( 0 : step : 1 )
+        ret["thds"] = Vector{Float32}( Array( 0 : step : 1 ) )
     else
-        ret["thds"] = Vector{Float32}( 0 : step : 0.9)
+        ret["thds"] = Vector{Float32}( Array( 0 : step : 0.9) )
     end
     # rand index
+    thds = ret["thds"]
     ret["ri"] = zeros(thds)
     ret["rim"] = zeros(thds)
     ret["ris"] = zeros(thds)
@@ -230,30 +231,31 @@ function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
         HST = Float32(0)
         HTS = Float32(0)
         IST = Float32(0)
-        HST = @parallel (-) for ((i::UInt32, j::UInt32),v::Float32) in om
-            v/Np * log( v/Np/li[j] )
-        end
-
-        HTS = @parallel (-) for ((i::UInt32, j::UInt32),v::Float32) in om
-            v/Np * log( v/Np/si[i] )
-        end
-
-        IST = @parallel (+) for ((i::UInt32, j::UInt32),v::Float32) in om
-            v/Np * log( v/Np / ( si[i] * li[j] ) )
-        end
-
-        # for (k::Tuple{UInt32,UInt32},v::Float32) in om
-        #     # segment id pair
-        #     (i::UInt32,j::UInt32) = k
-        #     pij = v/Np
-        #     HST -= pij * log( pij / li[j] )
-        #     HTS -= pij * log( pij / si[i] )
-        #     IST += pij * log( pij / (si[i] * li[j]) )
+        # i = UInt32(0); j = UInt32(0); v = Float32(0);
+        # HST = @parallel (-) for ((i, j),v) in om
+        #     v/Np * log( v/Np/li[j] )
         # end
+
+        # HTS = @parallel (-) for ((i, j),v) in om
+        #     v/Np * log( v/Np/si[i] )
+        # end
+
+        # IST = @parallel (+) for ((i, j),v) in om
+        #     v/Np * log( v/Np / ( si[i] * li[j] ) )
+        # end
+
+        for (k::Tuple{UInt32,UInt32},v::Float32) in om
+            # segment id pair
+            (i::UInt32,j::UInt32) = k
+            pij = v/Np
+            HST -= pij * log( pij / li[j] )
+            HTS -= pij * log( pij / si[i] )
+            IST += pij * log( pij / (si[i] * li[j]) )
+        end
         ret["VI"] = HS + HT - 2*IST
         ret["VIs"] = HST
         ret["VIm"] = HTS
-        ret["VIS"] = - VI
+        ret["VIS"] = - ret["VI"]
         ret["VIFSs"] = IST / HS
         ret["VIFSm"] = IST / HT
         ret["VIFS"] = 2*IST / (HT + HS)
@@ -271,11 +273,11 @@ function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
     # rand error
     ret["res"] = FN / Np
     ret["rem"] = FP / Np
-    ret["re"] = rem + res
+    ret["re"] = ret["rem"] + ret["res"]
     # rand index
     ret["ris"] = TN / Np
     ret["rim"] = TP / Np
-    ret["ri"] = rim + ris
+    ret["ri"] = ret["rim"] + ret["ris"]
 
     # rand f score
     ret["rfs"] = TP / (TP + FN)
