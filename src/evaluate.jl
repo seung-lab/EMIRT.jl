@@ -9,6 +9,8 @@ import Base.Math.JuliaLibm.log
 
 # rand error curve
 function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, is_remap=true)
+    @show size(affs)
+    @show size(lbl)
     @assert size(affs)[1:3] == size(lbl)
     sx,sy,sz = size(lbl)
     # transform to uniform distribution
@@ -74,7 +76,7 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
                 @time ed = segerror(seg, lbl)
             end
             # get value
-            for k in keys
+            for k in keys(ret)
                 ret[k][i] = ed[k]
             end
         else
