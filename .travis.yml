@@ -26,4 +26,6 @@ install:
         
 
 script:
+        - cd ~/.julia/v0.4/EMIRT
+        - git checkout parallel
         - julia -e 'Pkg.test("EMIRT")'
