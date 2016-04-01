@@ -11,6 +11,19 @@ lbl = Array{UInt32,3}(lbl)
 dec = affs_error_curve(affs, lbl)
 @show dec
 
+# compare python code and julia
+seg = aff2seg(affs)
+pydec = pysegerror(seg, lbl)
+judec = segerror(seg, lbl)
+@show pydec
+@show judec
+
+for (k,v1) in pydec
+    v2 = judec[k]
+    @show k
+    @assert maximum(abs(v2.-v1)) < 0.01
+end
+
 # dict of evaluation curve
 @time ecd = segerror(lbl,lbl)
 @show ecd

@@ -1,4 +1,4 @@
-export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors, segerror, patch_segerror
+export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors, pysegerror, segerror, patch_segerror
 
 include("affinity.jl")
 include("label.jl")
@@ -6,6 +6,8 @@ include("domains.jl")
 
 # use a log version which is faster and more accurate
 import Base.Math.JuliaLibm.log
+
+import PyCall.@pyimport
 
 # rand error curve
 function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, is_remap=true)
@@ -182,6 +184,19 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
     return res, mes, ses
 end
 
+"""
+compute the segmentation metrics using python segerror package
+https://github.com/seung-lab/segascorus
+"""
+function pysegerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
+    PyCall.@pyimport segascorus.error as serror
+    ret = Dict{ASCIIString, Float32}()
+    re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
+    ret["ri"], ret["rim"], ret["ris"] = (1-re, 1-rem, 1-res)
+    ret["rf"], ret["rfm"], ret["rfs"] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
+    ret["VIFS"], ret["VIFSm"], ret["VIFSs"] = serror.seg_fr_variation_f_score(seg, lbl, true, true)
+    return ret
+end
 
 function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
     ret = Dict{ASCIIString, Float32}()
@@ -228,31 +243,30 @@ function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
         Np = N*N/2
 
         # information theory metrics
-        HS = - sum( pmap(x->x*log(x), values(si)) )
-        HT = - sum( pmap(x->x*log(x), values(li)) )
+        HS = - sum( pmap(x->x/N*log(x/N), values(si)) )
+        HT = - sum( pmap(x->x/N*log(x/N), values(li)) )
         HST = Float32(0)
         HTS = Float32(0)
         IST = Float32(0)
         # i = UInt32(0); j = UInt32(0); v = Float32(0);
         # HST = @parallel (-) for ((i, j),v) in om
-        #     v/Np * log( v/Np/li[j] )
+        #     v/Np * log( v/li[j] )
         # end
 
         # HTS = @parallel (-) for ((i, j),v) in om
-        #     v/Np * log( v/Np/si[i] )
+        #     v/Np * log( v/si[i] )
         # end
 
         # IST = @parallel (+) for ((i, j),v) in om
-        #     v/Np * log( v/Np / ( si[i] * li[j] ) )
+        #     v/Np * log( v*Np / ( si[i] * li[j] ) )
         # end
 
-        for (k::Tuple{UInt32,UInt32},v::Float32) in om
+        for ((i::UInt32, j::UInt32),v::Float32) in om
             # segment id pair
-            (i::UInt32,j::UInt32) = k
-            pij = v/Np
-            HST -= pij * log( pij / li[j] )
-            HTS -= pij * log( pij / si[i] )
-            IST += pij * log( pij / (si[i] * li[j]) )
+            pij = v / N
+            HTS -= pij * log( v / si[i] )
+            HST -= pij * log( v / li[j] )
+            IST += pij * log( v * N / (si[i] * li[j]) )
         end
         ret["VI"] = HS + HT - 2*IST
         ret["VIs"] = HST
