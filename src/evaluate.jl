@@ -22,12 +22,11 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
 
     # thresholds
     if seg_method=="connected_component"
-        ret["thds"] = Vector{Float32}( Array( 0 : step : 1 ) )
+        thds = Vector{Float32}( Array( 0 : step : 1 ) )
     else
-        ret["thds"] = Vector{Float32}( Array( 0 : step : 0.9) )
+        thds = Vector{Float32}( Array( 0 : step : 0.9) )
     end
     # rand index
-    thds = ret["thds"]
     ret["ri"] = zeros(thds)
     ret["rim"] = zeros(thds)
     ret["ris"] = zeros(thds)
@@ -99,6 +98,7 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
         end
     end
     # print the scores
+    ret["thds"] = thds
     @show ret
     return ret
 end

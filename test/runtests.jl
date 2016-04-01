@@ -2,9 +2,14 @@
 using EMIRT
 
 # get test data
-lbl = imread("../assets/stack1-label.tif")
+affs = imread("../assets/affs.h5")
+lbl = imread("../assets/lbl.h5")
 
 lbl = Array{UInt32,3}(lbl)
+
+# test affinity curve, dict of error curve
+dec = affs_error_curve(affs, lbl)
+@show dec
 
 # dict of evaluation curve
 @time ecd = segerror(lbl,lbl)
