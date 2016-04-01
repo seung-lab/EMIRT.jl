@@ -18,7 +18,7 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
         affs = affs2uniform(affs);
     end
     # initialize the curve
-    ret = Dict{ASCIIString, Vector{Float32}}()
+    dec = Dict{ASCIIString, SharedArray{Float32,1}}()
 
     # thresholds
     if seg_method=="connected_component"
@@ -27,17 +27,17 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
         thds = Vector{Float32}( Array( 0 : step : 0.9) )
     end
     # rand index
-    ret["ri"] = zeros(thds)
-    ret["rim"] = zeros(thds)
-    ret["ris"] = zeros(thds)
+    dec["ri"] = SharedArray( Float32, size(thds), init = 0 )
+    dec["rim"] = SharedArray( Float32, size(thds), init = 0 )
+    dec["ris"] = SharedArray( Float32, size(thds), init = 0 )
     # rand f score
-    ret["rf"] =  zeros(thds)
-    ret["rfm"] = zeros(thds)
-    ret["rfs"] = zeros(thds)
+    dec["rf"] =  SharedArray( Float32, size(thds), init = 0 )
+    dec["rfm"] = SharedArray( Float32, size(thds), init = 0 )
+    dec["rfs"] = SharedArray( Float32, size(thds), init = 0 )
     # information theory metrics
-    ret["VIFS"] = zeros(thds)
-    ret["VIFSm"] = zeros(thds)
-    ret["VIFSs"] = zeros(thds)
+    dec["VIFS"] = SharedArray( Float32, size(thds), init = 0 )
+    dec["VIFSm"] = SharedArray( Float32, size(thds), init = 0 )
+    dec["VIFSs"] = SharedArray( Float32, size(thds), init = 0 )
 
     @assert seg_method=="connected_component" || seg_method=="watershed"
     # handle the dimension
@@ -54,7 +54,7 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
         wsdms, rt = watershed(affs, 0, 0.95, [], 0)
     end
 
-    for i in eachindex(thds)
+    @parallel for i in eachindex(thds)
 
         if seg_method == "watershed"
             if dim==2
@@ -75,8 +75,8 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
                 @time ed = segerror(seg, lbl)
             end
             # get value
-            for k in keys(ret)
-                ret[k][i] = ed[k]
+            for k in keys(dec)
+                dec[k][i] = ed[k]
             end
         else
             # 2D rand error and rand f score
@@ -87,17 +87,21 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
                     @time edz = segerror(seg[:,:,z], lbl[:,:,z])
                 end
                 # increase for each z
-                for k in keys(ret)
-                    ret[k][i] += edz[k]
+                for k in keys(dec)
+                    dec[k][i] += edz[k]
                 end
             end
             # get the average over Z
-            for k in keys(ret)
-                ret[k][i] /= sz
+            for k in keys(dec)
+                dec[k][i] /= sz
             end
         end
     end
-    # print the scores
+    # transform the shared array to normal array
+    ret = Dict{ASCIIString, Vector{Float32}}()
+    for (k,v) in dec
+        ret[k] = Array(v)
+    end
     ret["thds"] = thds
     @show ret
     return ret
