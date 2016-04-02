@@ -29,7 +29,7 @@ install:
         - sudo git clone https://github.com/seung-lab/segascorus.git
         - cd segascorus; 
         - sudo make
-        - mv ~__init__.py~ __init__.py
+        - sudo mv ~__init__.py~ __init__.py
         
 
 script:
