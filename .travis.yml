@@ -17,9 +17,9 @@ install:
         - sudo apt-get install libatlas-base-dev
         - sudo pip install --upgrade pip
         - sudo apt-get install -y gcc 
-        - sudo apt-get install -y python-numpy python-matplotlib python-h5py
+        - sudo apt-get install -y python-numpy python-matplotlib python-h5py python-scipy
         - sudo pip install numpy h5py tifffile 
-        - sudo pip install cython scipy
+        - sudo pip install cython 
         - julia -e 'Pkg.add("HDF5"); Pkg.add("Compose"); Pkg.add("PyPlot")'
         - git clone https://github.com/seung-lab/EMIRT.jl.git
         - mv EMIRT.jl ~/.julia/v0.4/EMIRT
