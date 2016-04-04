@@ -53,14 +53,16 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
 
     # if watershed, get watershed domains and mst first
     if seg_method == "watershed" && dim==3
-        wsdms, rt = watershed(affs, 0, 0.95, [], 0)
+        # wsdms, rt = watershed(affs, 0, 0.95, [], 0)
+        wsdms, rt = watershed(affs, 0.3, 0.95, [(600,0.3)], 1000)
     end
 
     for i in eachindex(thds)
 
         if seg_method == "watershed"
             if dim==2
-                seg = wsseg(affs, 2, 0,  0.95, [], 0, thds[i])
+                # seg = wsseg(affs, 2, 0,  0.95, [], 0, thds[i])
+                seg = wsseg(affs, 2, 0,  0.95, [(600,0.3)], 1000, thds[i])
             else
                 seg = mergert(wsdms, rt, thds[i])
             end

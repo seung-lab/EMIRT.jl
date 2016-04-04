@@ -2,7 +2,7 @@ using Watershed
 
 export wsseg, watershed, mergert!, mergert
 
-function watershed(affs, low=0.3, high=0.9, thresholds=[(256,0.3)], dust_size=100)
+function watershed(affs, low=0.3, high=0.8, thresholds=[(600,0.3)], dust_size=1000)
     println("watershed, low: $low, high: $high")
     sag = steepestascent(affs, low, high)
     divideplateaus!(sag)
