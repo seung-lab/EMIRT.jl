@@ -194,7 +194,7 @@ function pysegerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
     PyCall.@pyimport segascorus.error as serror
     ret = Dict{ASCIIString, Float32}()
     re, rem, res = serror.seg_fr_rand_error(seg, lbl, true, true)
-    ret["ri"], ret["rim"], ret["ris"] = (1-re, 1-rem, 1-res)
+    ret["ri"] = 1-re
     ret["rf"], ret["rfm"], ret["rfs"] = serror.seg_fr_rand_f_score(seg, lbl, true, true)
     ret["VIFS"], ret["VIFSm"], ret["VIFSs"] = serror.seg_fr_variation_f_score(seg, lbl, true, true)
     return ret

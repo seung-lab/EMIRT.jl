@@ -13,16 +13,23 @@ before_install:
         - sudo apt-get -qq update
 
 install:
-        - sudo apt-get install python2.7 python2.7-dev python-pip
+        - sudo apt-get install python2.7 python2.7-dev python-pip 
+        - sudo apt-get install libatlas-base-dev
         - sudo pip install --upgrade pip
         - sudo apt-get install -y gcc 
-        - sudo apt-get install -y python-numpy python-matplotlib python-h5py
-        - sudo pip install tifffile
+        - sudo apt-get install -y python-numpy python-matplotlib python-h5py python-scipy
+        - sudo pip install numpy h5py tifffile 
+        - sudo pip install cython 
         - julia -e 'Pkg.add("HDF5"); Pkg.add("Compose"); Pkg.add("PyPlot")'
         - git clone https://github.com/seung-lab/EMIRT.jl.git
         - mv EMIRT.jl ~/.julia/v0.4/EMIRT
         - git clone https://github.com/seung-lab/Watershed.jl.git
         - mv Watershed.jl ~/.julia/v0.4/Watershed
+        - cd /usr/local/lib/python2.7/dist-packages/
+        - sudo git clone https://github.com/seung-lab/segascorus.git
+        - cd segascorus; 
+        - sudo make
+        - sudo mv ~__init__.py~ __init__.py
         
 
 script:
