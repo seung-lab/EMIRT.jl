@@ -26,9 +26,9 @@ install:
         - git clone https://github.com/seung-lab/Watershed.jl.git
         - mv Watershed.jl ~/.julia/v0.4/Watershed
         - cd /usr/local/lib/python2.7/dist-packages/
-        - git clone https://github.com/seung-lab/segascorus.git
-        - cd segascorus; make
-        - mv ~__init__.py~ __init__.py
+        - sudo git clone https://github.com/seung-lab/segascorus.git
+        - cd segascorus; sudo make
+        - sudo mv ~__init__.py~ __init__.py
 
 script:
         - cd ~/.julia/v0.4/EMIRT
