@@ -3,7 +3,7 @@ export configparser, argparser!
 function str2list(s)
     ret = []
     for e in split(s, ',')
-        append!(ret, [eparse(e)])
+        append!(ret, [autoparse(e)])
     end
     return ret
 end
