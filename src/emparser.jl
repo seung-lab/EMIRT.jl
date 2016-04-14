@@ -37,12 +37,18 @@ function autoparse(s)
     end
 end
 
-function configparser(fconf)
-    # read text file
-    f = open(fconf)
-    lines = readlines(f)
-    close(f)
+"""
+parse the lines
+`Inputs:`
+lines: cofiguration file name or lines of configuration file
 
+`Outputs:`
+pd: Dict, dictionary containing parameters
+"""
+function configparser(lines)
+    if isfile(lines)
+        lines = readtxt(lines)
+    end
     # initialize the parameter dictionary
     pd = Dict()
     # default section name

@@ -2,7 +2,7 @@ using HDF5
 using PyCall
 using Compose
 
-export img2svg, imread, imsave, ecread
+export img2svg, imread, imsave, ecread, readtxt
 
 function imread(fname)
     print("reading file: $(fname) ......")
@@ -71,4 +71,12 @@ function ecread(fname)
         ret[key] = read(d[key])
     end
     return ret
+end
+
+function readtxt(fname)
+    # read text file
+    f = open(fname)
+    lines = readlines(f)
+    close(f)
+    return lines
 end
