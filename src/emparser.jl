@@ -45,19 +45,22 @@ lines: cofiguration file name or lines of configuration file
 `Outputs:`
 pd: Dict, dictionary containing parameters
 """
-function configparser(lines)
-    if isfile(lines)
-        lines = readtxt(lines)
-    end
+function configparser(fname::AbstractString)
+    lines = readlines(fname)
+    return configparser(lines)
+end
+
+function configparser(lines::Vector)
     # initialize the parameter dictionary
     pd = Dict()
     # default section name
     sec = "section"
     # analysis the lines
     for l in lines
+        @show l
         # remove space and \n
-        l = replace(l, " ", "")
         l = replace(l, "\n", "")
+        l = replace(l, " ", "")
         if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
             continue
         elseif ismatch(r"^\s*\[.*\]", l)
