@@ -72,11 +72,3 @@ function ecread(fname)
     end
     return ret
 end
-
-function readtxt(fname)
-    # read text file
-    f = open(fname)
-    lines = readlines(f)
-    close(f)
-    return lines
-end

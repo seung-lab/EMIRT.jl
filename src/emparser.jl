@@ -57,7 +57,6 @@ function configparser(lines::Vector)
     sec = "section"
     # analysis the lines
     for l in lines
-        @show l
         # remove space and \n
         l = replace(l, "\n", "")
         l = replace(l, " ", "")
@@ -88,7 +87,7 @@ the returned dictionary will be
 pd['f'] = "label.h5"
 pd['r'] = [2,4,5,6]
 """
-function argparser!(pd=Dict() )
+function argparser!(pd::Dict=Dict() )
     println("default parameters: $(pd)")
     # argument table, two rows
     @assert length(ARGS) % 2 ==0
