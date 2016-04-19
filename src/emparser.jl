@@ -37,12 +37,20 @@ function autoparse(s)
     end
 end
 
-function configparser(fconf)
-    # read text file
-    f = open(fconf)
-    lines = readlines(f)
-    close(f)
+"""
+parse the lines
+`Inputs:`
+lines: cofiguration file name or lines of configuration file
 
+`Outputs:`
+pd: Dict, dictionary containing parameters
+"""
+function configparser(fname::AbstractString)
+    lines = readlines(fname)
+    return configparser(lines)
+end
+
+function configparser(lines::Vector)
     # initialize the parameter dictionary
     pd = Dict()
     # default section name
@@ -50,8 +58,8 @@ function configparser(fconf)
     # analysis the lines
     for l in lines
         # remove space and \n
-        l = replace(l, " ", "")
         l = replace(l, "\n", "")
+        l = replace(l, " ", "")
         if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
             continue
         elseif ismatch(r"^\s*\[.*\]", l)
@@ -79,7 +87,7 @@ the returned dictionary will be
 pd['f'] = "label.h5"
 pd['r'] = [2,4,5,6]
 """
-function argparser!(pd=Dict() )
+function argparser!(pd::Dict=Dict() )
     println("default parameters: $(pd)")
     # argument table, two rows
     @assert length(ARGS) % 2 ==0
