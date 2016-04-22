@@ -1,4 +1,4 @@
-export affs_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, affs_error_curve, affs_fr_rand_errors, pysegerror, segerror, patch_segerror
+export aff_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, aff_error_curve, aff_fr_rand_errors, pysegerror, segerror, patch_segerror
 
 include("affinity.jl")
 include("label.jl")
@@ -10,14 +10,14 @@ import Base.Math.JuliaLibm.log
 import PyCall.@pyimport
 
 # rand error curve
-function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, is_remap=true)
-    @show size(affs)
+function aff_error_curve(aff::Taff, lbl::Tseg, dim=3, step=0.1, seg_method="watershed", is_patch=false, is_remap=true)
+    @show size(aff)
     @show size(lbl)
-    @assert size(affs)[1:3] == size(lbl)
+    @assert size(aff)[1:3] == size(lbl)
     sx,sy,sz = size(lbl)
     # transform to uniform distribution
     if is_remap
-        affs = affs2uniform(affs);
+        aff = aff2uniform(aff);
     end
     # initialize the curve
     ret = Dict{ASCIIString, Vector{Float32}}()
@@ -53,21 +53,21 @@ function affs_error_curve(affs::Taffs, lbl::Tseg, dim=3, step=0.1, seg_method="w
 
     # if watershed, get watershed domains and mst first
     if seg_method == "watershed" && dim==3
-        # wsdms, rt = watershed(affs, 0, 0.95, [], 0)
-        wsdms, rt = watershed(affs, 0.3, 0.95, [(600,0.3)], 1000)
+        # wsdms, rt = watershed(aff, 0, 0.95, [], 0)
+        wsdms, rt = watershed(aff, 0.3, 0.95, [(600,0.3)], 1000)
     end
 
     for i in eachindex(thds)
 
         if seg_method == "watershed"
             if dim==2
-                # seg = wsseg(affs, 2, 0,  0.95, [], 0, thds[i])
-                seg = wsseg(affs, 2, 0,  0.95, [(600,0.3)], 1000, thds[i])
+                # seg = wsseg(aff, 2, 0,  0.95, [], 0, thds[i])
+                seg = wsseg(aff, 2, 0,  0.95, [(600,0.3)], 1000, thds[i])
             else
                 seg = mergert(wsdms, rt, thds[i])
             end
         else
-            seg = aff2seg( affs, dim, thds[i] )
+            seg = aff2seg( aff, dim, thds[i] )
         end
 
         segs[i,:,:,:]  = seg
@@ -111,15 +111,15 @@ end
 compute the foreground restricted rand error
 
 Inputs:
-affs: affinity map
+aff: affinity map
 lbl: ground truth labeling
 thds: a list of thresholds to segment the affinity map using connected component
 
 Outputs:
 a list of foreground restricted rand errors corresponds to the thresholds
 """
-function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(1,0,11)))
-    @assert size(affs)[1:3] == size(lbl)
+function aff_fr_rand_errors(aff::Taff, lbl::Tseg, thds::Array=Array(linspace(1,0,11)))
+    @assert size(aff)[1:3] == size(lbl)
     # sizes
     sx,sy,sz = size(lbl)
 
@@ -139,7 +139,7 @@ function affs_fr_rand_errors(affs::Taffs, lbl::Tseg, thds::Array=Array(linspace(
 
     # get the sorted affinity edge list
     print("get the sorted affinity edge list......")
-    elst = affs2edgelist( affs )
+    elst = aff2edgelist( aff )
     println("done :)")
 
     # merge the voxels by traversing the sorted affinity edges

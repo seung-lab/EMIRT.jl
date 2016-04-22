@@ -2,42 +2,42 @@ include( "domains.jl" )
 include("label.jl")
 include("types.jl")
 
-export aff2seg, exchangeaffsxz!, affs2uniform, gaffs2saffs, affs2edgelist
+export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
 
 """
 transform google affinity to seung lab affinity
 """
-function gaffs2saffs( gaffs )
-    @assert ndims(gaffs)==3
-    sx,sy,sz = size(gaffs)
-    saffs = reshape(gaffs, (sx,sy,Int64(sz/3),Int64(3)));
+function gaff2saff( gaff )
+    @assert ndims(gaff)==3
+    sx,sy,sz = size(gaff)
+    saff = reshape(gaff, (sx,sy,Int64(sz/3),Int64(3)));
 
     # transform the x y and z channel
-    ret = zeros(saffs)
-    ret[2:end,:,:, 1] = saffs[1:end-1,:,:, 1]
-    ret[:,2:end,:, 2] = saffs[:,1:end-1,:, 2]
-    ret[:,:,2:end, 3] = saffs[:,:,1:end-1, 3]
+    ret = zeros(saff)
+    ret[2:end,:,:, 1] = saff[1:end-1,:,:, 1]
+    ret[:,2:end,:, 2] = saff[:,1:end-1,:, 2]
+    ret[:,:,2:end, 3] = saff[:,:,1:end-1, 3]
 
     return ret
 end
 
 # exchang X and Z channel of affinity
-function exchangeaffsxz!(affs::Taffs)
+function exchangeaffxz!(aff::Taff)
     println("exchange x and z of affinity map")
-    taffx = deepcopy(affs[:,:,:,1])
-    affs[:,:,:,1] = deepcopy(affs[:,:,:,3])
-    affs[:,:,:,3] = taffx
-    return affs
+    taffx = deepcopy(aff[:,:,:,1])
+    aff[:,:,:,1] = deepcopy(aff[:,:,:,3])
+    aff[:,:,:,3] = taffx
+    return aff
 end
 
 # transform affinity to segmentation
-function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
+function aff2seg( aff::Taff, dim = 3, thd = 0.5 )
     @assert dim==2 || dim==3
     # note that should be column major affinity map
     # the znn V4 output is row major!!! should exchangeaffxz first!
-    xaff = affs[:,:,:,1]
-    yaff = affs[:,:,:,2]
-    zaff = affs[:,:,:,3]
+    xaff = aff[:,:,:,1]
+    yaff = aff[:,:,:,2]
+    zaff = aff[:,:,:,3]
 
     # number of voxels in segmentation
     N = length(xaff)
@@ -106,15 +106,15 @@ function aff2seg( affs::Taffs, dim = 3, thd = 0.5 )
     return seg
 end
 
-function affs2uniform(affs, alg=QuickSort)
+function aff2uniform(aff, alg=QuickSort)
     print("map to uniform distribution...")
-    tp = typeof(affs)
-    sz = size(affs)
-    N = length(affs)
+    tp = typeof(aff)
+    sz = size(aff)
+    N = length(aff)
 
     # get the indices
     print("get the permutation by sorting......")
-    @time p = sortperm(affs[:], alg=alg)
+    @time p = sortperm(aff[:], alg=alg)
     println("done :)")
     q = zeros(p)
     q[p[1:N]] = 1:N
@@ -129,21 +129,21 @@ function affs2uniform(affs, alg=QuickSort)
     return v
 end
 
-#function affs2uniform!(affs::Taffs)
+#function aff2uniform!(aff::Taff)
  #   println("transfer to uniform distribution...")
- #   for z in 1:size(affs,3)
- #       affs[:,:,z,:] = arr2uniform( affs[:,:,z,:] )
+ #   for z in 1:size(aff,3)
+ #       aff[:,:,z,:] = arr2uniform( aff[:,:,z,:] )
  #   end
 #end
 
 """
 transfer affinity map to edge list
 """
-function affs2edgelist(affs::Taffs, is_sort=true)
+function aff2edgelist(aff::Taff, is_sort=true)
     # initialize the edge list
     elst = Array{Tuple{Float32,UInt32,UInt32},1}([])
     # get the sizes
-    sx,sy,sz,sc = size(affs)
+    sx,sy,sz,sc = size(aff)
     @assert sc==3
 
     for z in 1:sz
@@ -153,17 +153,17 @@ function affs2edgelist(affs::Taffs, is_sort=true)
                 # x affinity
                 if x>1
                     vid2 = x-1 + (y-1)*sx + (z-1)*sx*sy
-                    push!(elst, (affs[x,y,z,1], vid1, vid2))
+                    push!(elst, (aff[x,y,z,1], vid1, vid2))
                 end
                 # y affinity
                 if y>1
                     vid2 = x + (y-2)*sx + (z-1)*sx*sy
-                    push!(elst, (affs[x,y,z,2], vid1, vid2))
+                    push!(elst, (aff[x,y,z,2], vid1, vid2))
                 end
                 # z affinity
                 if z>1
                     vid2 = x + (y-1)*sx + (z-2)*sx*sy
-                    push!(elst, (affs[x,y,z,3], vid1, vid2))
+                    push!(elst, (aff[x,y,z,3], vid1, vid2))
                 end
             end
         end

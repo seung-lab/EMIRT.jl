@@ -1,4 +1,6 @@
-export configparser, argparser!
+export configparser, argparser!, shareprms!
+
+typealias Tpdconf Dict{AbstractString, Dict{AbstractString, Any}}
 
 function str2list(s)
     ret = []
@@ -52,7 +54,43 @@ end
 
 function configparser(lines::Vector)
     # initialize the parameter dictionary
-    pd = Dict()
+    pd = Tpdconf()
+    # default section name
+    sec = "section"
+    # analysis the lines
+    for l in lines
+        # remove space and \n
+        l = replace(l, "\n", "")
+        l = replace(l, " ", "")
+        if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
+            continue
+        elseif ismatch(r"^\s*\[.*\]", l)
+            # update the section name
+            m = match(r"\[.*\]", l)
+            sec = m.match[2:end-1]
+            pd[sec] = Dict()
+        elseif ismatch(r"^\s*.*\s*=", l)
+            k, v = split(l, '=')
+            # assign value to dictionary
+            pd[sec][k] = autoparse( v )
+        end
+    end
+    return pd
+end
+
+"""
+parse configuration file for Directed Acyclic Graph (DAG) computation
+"""
+function dagparser(fname::AbstractString)
+    lines = readlines(fname)
+    return dagparser(lines)
+end
+
+function dagparser(lines::Vector)
+    # initialize the parameter dictionary
+    pd = Vector(Dict)
+    # temporary dictionary
+
     # default section name
     sec = "section"
     # analysis the lines
@@ -102,4 +140,17 @@ function argparser!(pd::Dict=Dict() )
         pd[k] = v
     end
     println("parameters after command line parsing: $(pd)")
+end
+
+# share the gneral parameters in each section
+function shareprms!(pd::Tpdconf, gnkey::AbstractString="gn")
+    @assert haskey(pd, gnkey)
+    for k1 in keys(pd)
+        if k1 != gnkey
+            for (k2,v2) in pd[gnkey]
+                pd[k1][k2] = v2
+            end
+        end
+    end
+    return pd
 end
