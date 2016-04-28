@@ -1,3 +1,5 @@
+using Watershed
+
 export aff_fr_rand_error, seg_fr_rand_error, seg_fr_rand_f_score, aff_error_curve, aff_fr_rand_errors, pysegerror, segerror, patch_segerror
 
 include("affinity.jl")

@@ -1,4 +1,6 @@
 
+export Tseg, Taff
+
 typealias Tseg Array{UInt32,3}
 
 
