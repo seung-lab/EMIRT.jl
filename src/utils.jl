@@ -2,7 +2,7 @@
 Utilities
 =#
 
-export rthd2athd
+export percent2thd
 
 #=doc
 .. function::
@@ -10,7 +10,7 @@ export rthd2athd
    Args:
    -
 =#
-function rthd2athd(e::FloatRange{Float64}, count::Vector{Int64}, rt::AbstractFloat)
+function percent2thd(e::FloatRange{Float64}, count::Vector{Int64}, rt::AbstractFloat)
     # total number
     tn = sum(count)
     # the rank of voxels corresponding to the threshold
@@ -25,7 +25,7 @@ function rthd2athd(e::FloatRange{Float64}, count::Vector{Int64}, rt::AbstractFlo
     end
 end
 
-function rthd2athd(arr::Array, rt::AbstractFloat, nbin=100000)
+function percent2thd(arr::Array, rt::AbstractFloat, nbin=100000)
     e, count = hist(arr[:], nbin)
-    return rthd2athd(e, count, rt)
+    return percent2thd(e, count, rt)
 end
