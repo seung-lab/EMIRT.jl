@@ -1,21 +1,12 @@
-export configparser, argparser!, shareprms!
+export autoparse, configparser, argparser!, shareprms!
 
 typealias Tpdconf Dict{AbstractString, Dict{AbstractString, Any}}
 
-function str2list(s)
+function str2list(s, splitter=";")
     ret = []
-    for e in split(s, ',')
-        append!(ret, [autoparse(e)])
-    end
-    return ret
-end
-
-function str2array(s)
-    ret = []
-    for r in split(s, ';')
-        t = str2list(r)
-        if length(t)>0
-            append!(ret, collect(t))
+    for e in split(s, splitter)
+        if e!=""
+            append!(ret, [autoparse(e)])
         end
     end
     return ret
@@ -23,10 +14,16 @@ end
 
 # auto conversion of string
 function autoparse(s)
-    if contains(s, ";")
-        return str2array(s)
+    if s==""
+        return s
+    elseif contains(s, ";")
+        return str2list(s, ";")
+    elseif length(s)>1 && s[1]=='('
+        @assert s[end]==')'
+        # a tuple
+        return tuple(autoparse(s[2:end-1])...)
     elseif contains(s, ",")
-        return str2list(s)
+        return str2list(s, ",")
     elseif s=="yes" || s=="Yes"|| s=="y" || s=="Y" || s=="true" || s=="True"
         return true
     elseif s=="no" || s=="No" || s=="n" || s=="N" || s=="false" || s=="False"
@@ -143,7 +140,7 @@ function argparser!(pd::Dict=Dict() )
 end
 
 # share the gneral parameters in each section
-function shareprms!(pd::Tpdconf, gnkey::AbstractString="gn")
+function shareprms!(pd::Tpdconf, gnkey::AbstractString="gn", is_keep=true)
     @assert haskey(pd, gnkey)
     for k1 in keys(pd)
         if k1 != gnkey
@@ -151,6 +148,9 @@ function shareprms!(pd::Tpdconf, gnkey::AbstractString="gn")
                 pd[k1][k2] = v2
             end
         end
+    end
+    if !is_keep
+        delete!(pd, gnkey)
     end
     return pd
 end

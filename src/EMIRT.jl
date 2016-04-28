@@ -19,4 +19,5 @@ include("evaluate.jl")
 include("emparser.jl")
 include("filesystem.jl")
 include("utils.jl")
+include("types.jl")
 end
