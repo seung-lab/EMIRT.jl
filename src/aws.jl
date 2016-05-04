@@ -1,8 +1,7 @@
 using AWS
 #using AWS.SQS
 #using AWS.S3
-
-export build_env, iss3, s32local
+export build_env, iss3, s3_list_objects
 
 """
 build aws envariament
@@ -39,7 +38,7 @@ lcname: String, local temporal folder path or local file name
 `Outputs:`
 lcname: String, local file name
 """
-function s32local(env::AWSEnv, s3name::AbstractString, tmpdir::AbstractString)
+function Base.download(env::AWSEnv, s3name::AbstractString, tmpdir::AbstractString)
     # directly return if not s3 file
     if !iss3(s3name)
         return s3name
@@ -64,4 +63,53 @@ function s32local(env::AWSEnv, s3name::AbstractString, tmpdir::AbstractString)
     # download s3 file using awscli
     run(`aws s3 cp $(s3name) $(lcfname)`)
     return lcfname
+end
+
+"""
+split the path to bucket name and prefix
+"""
+function splitbktprefix(path::AbstractString)
+    path = replace(path, "s3://", "")
+    bkt, prefix = split(a, "/", limit = 2)
+    bkt = ASCIIString(bkt)
+    prefix = ASCIIString(prefix)
+    return bkt, prefix
+end
+
+"""
+list objects of s3. no directory/folder in the list
+
+`Inputs`:
+env: AWS environment
+bkt: bucket name
+path: path
+
+`Outputs`:
+ret: list of objects
+"""
+function s3_list_objects(env::AWSEnv, path::AbstractString)
+    bkt, prefix = splitbktprefix(path)
+    return s3_list_objects(env, bkt, prefix)
+end
+function s3_list_objects(path::AbstractString)
+    bkt, prefix = splitbktprefix(path)
+    return s3_list_objects(bkt, prefix)
+end
+function s3_list_objects(bkt::AbstractString, prefix::AbstractString)
+    return s3_list_objects(env, bkt, prefix)
+end
+function s3_list_objects(env::AWSEnv, bkt::AbstractString, prefix::AbstractString)
+    prefix = lstrip(prefix, '/')
+    # prefix = path=="" ? path : rstrip(path, '/')*"/"
+    bucket_options = AWS.S3.GetBucketOptions(delimiter="/", prefix=prefix)
+    resp = AWS.S3.get_bkt(env, bkt; options=bucket_options)
+
+    ret = Vector{ASCIIString}()
+    for content in resp.obj.contents
+        fname = replace(content.key, prefix, "")
+        if fname!=""
+            push!(ret, fname)
+        end
+    end
+    return ret
 end
