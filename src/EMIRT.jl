@@ -20,4 +20,6 @@ include("emparser.jl")
 include("filesystem.jl")
 include("utils.jl")
 include("types.jl")
+include("aws.jl")
+
 end
