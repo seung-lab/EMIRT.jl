@@ -1,7 +1,7 @@
 using AWS
-#using AWS.SQS
-#using AWS.S3
-export build_env, iss3, s3_list_objects
+using AWS.SQS
+using AWS.S3
+export build_env, iss3, s3_list_objects, fetchSQSmessage, takeSQSmessage!, sendSQSmessage
 
 """
 build aws envariament
@@ -20,6 +20,61 @@ function build_env()
     return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
 end
 
+"""
+get the url of queue
+"""
+function get_qurl(env::AWSEnv, qname::AbstractString="spipe-tasks")
+    return GetQueueUrl(env; queueName=qname).obj.queueUrl
+end
+
+"""
+fetch SQS message from queue url
+`Inputs:`
+env: AWS enviroment
+qurl: String, url of queue or queue name
+"""
+function fetchSQSmessage(env::AWSEnv, qurl::AbstractString)
+    if !contains(qurl, "https://sqs.")
+        # this is not a url, should be a queue name
+        qurl = get_qurl(env, qurl)
+    end
+    resp = ReceiveMessage(env, queueUrl = qurl)
+    msg = resp.obj.messageSet[1]
+    return msg
+end
+
+"""
+take SQS message from queue
+will delete mssage after fetching
+"""
+function takeSQSmessage!(env::AWSEnv, qurl::AbstractString="")
+    if !contains(qurl, "https://sqs.")
+        # this is not a url, should be a queue name
+        qurl = get_qurl(env, qurl)
+    end
+
+    msg = fetchSQSmessage(env, qurl)
+    # delete the message in queue
+    resp = DeleteMessage(env, queueUrl=qurl, receiptHandle=msg.receiptHandle)
+    # resp = DeleteMessage(env, msg)
+    if resp.http_code < 299
+        println("message deleted")
+    else
+        println("message taking failed!")
+    end
+    return msg
+end
+
+
+"""
+put a task to SQS queue
+"""
+function sendSQSmessage(env::AWSEnv, qurl::AbstractString, msg::AbstractString)
+    if !contains(qurl, "https://sqs.")
+        qurl = get_qurl(env, qurl)
+    end
+    resp = SendMessage(env; queueUrl=qurl, delaySeconds=0, messageBody=msg)
+end
 
 """
 whether this file is in s3
@@ -70,7 +125,7 @@ split the path to bucket name and prefix
 """
 function splitbktprefix(path::AbstractString)
     path = replace(path, "s3://", "")
-    bkt, prefix = split(a, "/", limit = 2)
+    bkt, prefix = split(path, "/", limit = 2)
     bkt = ASCIIString(bkt)
     prefix = ASCIIString(prefix)
     return bkt, prefix
@@ -110,6 +165,10 @@ function s3_list_objects(env::AWSEnv, bkt::AbstractString, prefix::AbstractStrin
         if fname!=""
             push!(keylst, content.key)
         end
+    end
+    # the prefix is alread a single file
+    if keylst == []
+        push!(keylst, prefix)
     end
     return bkt, keylst
 end

@@ -45,7 +45,13 @@ lines: cofiguration file name or lines of configuration file
 pd: Dict, dictionary containing parameters
 """
 function configparser(fname::AbstractString)
-    lines = readlines(fname)
+    if contains(fname, "[") && contains(fname, "]") && contains(fname, "=")
+        # this is actually the content of the config file!
+        lines = split(fname, "\n")
+    else
+        # this is really a file name
+        lines = readlines(fname)
+    end
     return configparser(lines)
 end
 
