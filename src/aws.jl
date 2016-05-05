@@ -104,12 +104,12 @@ function s3_list_objects(env::AWSEnv, bkt::AbstractString, prefix::AbstractStrin
     bucket_options = AWS.S3.GetBucketOptions(delimiter="/", prefix=prefix)
     resp = AWS.S3.get_bkt(env, bkt; options=bucket_options)
 
-    ret = Vector{ASCIIString}()
+    keylst = Vector{ASCIIString}()
     for content in resp.obj.contents
         fname = replace(content.key, prefix, "")
         if fname!=""
-            push!(ret, fname)
+            push!(keylst, content.key)
         end
     end
-    return ret
+    return bkt, keylst
 end
