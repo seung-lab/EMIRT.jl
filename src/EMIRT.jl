@@ -14,5 +14,6 @@ include("core/filesystem.jl")
 include("core/utils.jl")
 include("core/types.jl")
 #include("aws.jl")
+include("core/errorcurve.jl")
 
 end
