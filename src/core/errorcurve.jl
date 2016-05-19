@@ -1,3 +1,5 @@
+using HDF5
+
 typealias Tec Dict{AbstractString, Vector{Float32}}
 
 function push!(ec::Tec, key::AbstractString, value::Float32)
@@ -26,7 +28,7 @@ function push!(ec::Tec, thd::Float32, err::Dict{AbstractString, Float32})
 end
 
 function push!(ec::Tec, err::Dict{AbstractString, Float32})
-    for k,v in err
+    for (k,v) in err
         push!(ec, k, v)
     end
     ec
@@ -36,7 +38,7 @@ end
 save the error curve
 """
 function save(fname::AbstractString, ec::Tec, tag::AbstractString="ec")
-    for k,v in ec
+    for (k,v) in ec
         h5write(fname, "/errorcurve/$tag/$k", v)
     end
 end
@@ -70,6 +72,14 @@ end
 
 typealias Tecs Dict{AbstractString, Tec}
 
+function push!(ecs::Tecs, key::AbstractString, value::Float32, tag::AbstractString="ec")
+    push!(ecs[tag], key, value)
+end
+
+function push!(ecs::Tecs, err::Dict{AbstractString, Float32}, tag::AbstractString="ec")
+    push!(ecs[tag], err)
+end
+
 function readecs(fname::AbstractString)
     ret = Tecs()
     f = h5open(fname)
@@ -82,7 +92,7 @@ function readecs(fname::AbstractString)
 end
 
 function saveecs(fname::AbstractString, ecs::Tecs)
-    for tag,ec in ecs
+    for (tag,ec) in ecs
         saveec(fname, ec, tag)
     end
 end

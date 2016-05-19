@@ -1,6 +1,4 @@
 using HDF5
-using PyCall
-using Compose
 
 export img2svg, imread, imsave, ecread, readtxt, readaff, saveaff
 
@@ -10,15 +8,15 @@ function imread(fname)
         ret =  h5read(fname, "/main")
         println("done :)")
         return ret
-    elseif contains(fname, ".tif")
-        @pyimport tifffile
-        vol = tifffile.imread(fname)
-        # transpose the dims from z,y,x to x,y,z
-        vol = permutedims(vol, Array(ndims(vol):-1:1))
-        println("done :)")
-        return vol
+    #elseif contains(fname, ".tif")
+        # @pyimport tifffile
+        # vol = tifffile.imread(fname)
+        # # transpose the dims from z,y,x to x,y,z
+        # vol = permutedims(vol, Array(ndims(vol):-1:1))
+        # println("done :)")
+        # return vol
     else
-        error("invalid file type! only support hdf5 and tif now.")
+        error("invalid file type! only support hdf5 now.")
     end
 end
 
@@ -32,12 +30,12 @@ function imsave(vol::Array, fname, is_overwrite=true)
 
     if contains(fname, ".h5") || contains(fname, ".hdf5")
         h5write(fname, "/main", vol)
-    elseif contains(fname, ".tif")
-        @pyimport tifffile
-        tifffile.imsave(fname, vol)
-        # emio.imsave(vol, fname)
+    # elseif contains(fname, ".tif")
+    #     @pyimport tifffile
+    #     tifffile.imsave(fname, vol)
+    #     # emio.imsave(vol, fname)
     else
-        error("invalid image format! only support hdf5 and tif now.")
+        error("invalid image format! only support hdf5 now.")
     end
     println("done!")
 end
@@ -51,17 +49,6 @@ function imsave(fseg::AbstractString, seg::Tseg, dend::Array, dendValues::Vector
     h5write(fseg, "/dend", dend)
     h5write(fseg, "/dendValues", dendValues)
     h5write(fseg, "/main", seg)
-end
-
-
-"""
-save image as svg file
-
-"""
-function img2svg( img::Array, fname )
-    # reshape to vector
-    v = reshape( img, length(img))
-    draw(SVG(fname, 3inch, 3inch), compose(context(), bitmap("image/png", Array{UInt8}(v), 0, 0, 1, 1)))
 end
 
 """
