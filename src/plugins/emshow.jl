@@ -1,28 +1,36 @@
-export random_color_show, plot
-using PyPlot
+export show, plot
 using Gadfly
+import Images: Image
+import ImageView: view
 
-include("../core/label.jl")
+include("../core/seg.jl")
 include("../core/evaluate.jl")
 include("../core/errorcurve.jl")
 include("utils.jl")
 
-function random_color_show( seg )
-    seg2 = seg
-    if ndims(seg)==3
-        seg2 = seg[:,:,1]
-    end
+import Base: show
+# show segmentationx
+function show( seg::Tseg )
+    @assert ndims(seg)==3
+    rgbseg = seg2rgb(seg)
+    view(Image(rgbseg, colordim=4, spatialorder=["x","y","z"]))
+end
 
-    sx,sy = size(seg2)
-    seg2 = reshape(seg2, (sx,sy,1))
-    seg2 = copy(Tseg(seg2))
+# show raw image
+function show(img::Timg)
+    view(Image(img, spatialorder=["x","y","z"]))
+end
 
-    @assert ndims(seg2)==3
-    rgbseg = seg2rgb!(seg2)
-    # note that the seg was transposed to be consistent with python plot
-    # because julia use column major and python use row major
-    rgbseg = permutedims(rgbseg[:,:,:,1], [3,2,1])
-    imshow( rgbseg )
+# show raw image and segmentation combined together
+function show(img::Timg, seg::Tseg)
+    # combined rgb image stack
+    cmb = seg_overlay_img(img, seg)
+    view(Image(cmb, colordim=4, spatialorder=["x","y","z"]))
+end
+
+# show affinity map
+function show(aff::Taff)
+    view(Image(aff, colordim=4, spatialorder=["x","y","z"]))
 end
 
 """

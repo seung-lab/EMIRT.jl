@@ -1,34 +1,6 @@
 include("types.jl")
 
-using HDF5
-
-"""
-read segmentation with maximum spanning tree
-"""
-function readsgm(fname::AbstractString)
-    f = h5open(fname)
-    if "seg" in names(f)
-        seg = read(f["seg"])
-    else
-        @assert "main" in names(f)
-        seg = read(f["main"])
-    end
-    dend = read(f["dend"])
-    dendValues = read(f["dendValues"])
-    Tsgm(seg, dend, dendValues)
-end
-
-"""
-save seg-mst
-"""
-function savesgm(fname::AbstractString, sgm::Tsgm)
-    h5write(fname, "seg", sgm.seg)
-    h5write(fname, "dend", sgm.dend)
-    h5write(fname, "dendValues", sgm.dendValues)
-end
-function savesgm(fname::AbstractString, seg::Tseg, dend::Tdend, dendValues::TdendValues)
-    savesgm( fname, Tsgm(seg,dend,dendValues) )
-end
+export segment, sgm2ec
 
 """
 get the segment with a threshold
@@ -69,5 +41,17 @@ function segment(sgm::Tsgm, thd::AbstractFloat)
 end
 
 """
-compute error curve
+compute segmentation error using one threshold
 """
+function sgm2error(sgm::Tsgm, lbl, thd::AbstractFloat)
+    @assert thd<=1 && thd>=0
+    seg = segment(sgm, thd)
+    return segerror(seg, thd)
+end
+
+"""
+compute error curve based on a segmentation (including dendrogram) and groundtruth label
+"""
+function sgm2ec(sgm::Tsgm, lbl::Tseg, thds = 0:0.1:1)
+
+end

@@ -274,35 +274,29 @@ end
 
 """
 transform indexed segmentation image to RGB image with random color label
-it is recommanded to reassign segment id to 1-N using function of segid1N!
-inputs:
 seg: segmentation, an indexed array
-is_1N: remap to 1-N or not
 
 Outputs:
-ret: rgb image array with a size of 3 x X x Y x Z
+ret: rgb image array with a size of X x Y x Z x 3, the color dim is the last one
 """
-function seg2rgb!(seg::Tseg, is_1N=true)
-    # relabel to 1-N
-    if is_1N
-        Nl = segid1N!(seg)
-    else
-        Nl = maximum(seg)
-    end
-
-    # create random color map
-    rc = rand(Float32, 3, Nl+1)
-    # black for 0 index
-    rc[:,1] = 0
+function seg2rgb(seg::Tseg)
+    # the color dict, key is segment id, value is color
+    dcol = Dict{UInt32, Vector{Float32}}()
+    # set the boundary color to be black
+    dcol[0] = [0,0,0]
 
     # create RGB image
     sx,sy,sz = size(seg)
-    ret = zeros(Float32, (3,sx,sy,sz))
-    # assign color value
+    ret = zeros(Float32, (sx,sy,sz,3))
+    # assign random color
     for z = 1:sz
         for y = 1:sy
             for x = 1:sx
-                ret[:,x,y,z] = rc[:, seg[x,y,z]+1]
+                key = seg[x,y,z]
+                if !haskey(dcol, key)
+                    dcol[key] = rand(Float32,3)
+                end
+                ret[x,y,z,:] = dcol[key]
             end
         end
     end
@@ -321,17 +315,17 @@ alpha2: the alpha value of the segmentation
 Outputs:
 ret: composited RGBA image array
 """
-function seg_overlay_img!(img, seg, alpha1=0.5, alpha2=0.5)
+function seg_overlay_img(img, seg, alpha1=0.5, alpha2=0.5)
     @assert size(img)==size(seg)
     @assert alpha1>0 && alpha1<1
     @assert alpha2>0 && alpha2<1
     sx,sy,sz = size(img)
 
     # initialize the returned RGBA image
-    ret = zeros(Float32,(3,sx,sy,sz))
+    ret = zeros(Float32,(sx,sy,sz,3))
 
     # colorful segmentation image
-    cseg = seg2rgb!(Tseg(seg))
+    cseg = seg2rgb(Tseg(seg))
 
     # transform img to 0-1
     fimg = Array{Float32,3}(img)
@@ -342,14 +336,14 @@ function seg_overlay_img!(img, seg, alpha1=0.5, alpha2=0.5)
             for x in 1:sx
                 if seg[x,y,z]==0
                     # completely transparent in boundary regions
-                    ret[1,x,y,z] = fimg[x,y,z]
-                    ret[2,x,y,z] = fimg[x,y,z]
-                    ret[3,x,y,z] = fimg[x,y,z]
+                    ret[x,y,z,1] = fimg[x,y,z]
+                    ret[x,y,z,2] = fimg[x,y,z]
+                    ret[x,y,z,3] = fimg[x,y,z]
                 else
                     # only composite in non-boundary regions
-                    ret[1,x,y,z] = ( fimg[x,y,z]*alpha1 + cseg[1,x,y,z]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
-                    ret[2,x,y,z] = ( fimg[x,y,z]*alpha1 + cseg[2,x,y,z]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
-                    ret[3,x,y,z] = ( fimg[x,y,z]*alpha1 + cseg[3,x,y,z]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
+                    ret[x,y,z,1] = ( fimg[x,y,z]*alpha1 + cseg[x,y,z,1]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
+                    ret[x,y,z,2] = ( fimg[x,y,z]*alpha1 + cseg[x,y,z,2]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
+                    ret[x,y,z,3] = ( fimg[x,y,z]*alpha1 + cseg[x,y,z,3]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
                 end
             end
         end

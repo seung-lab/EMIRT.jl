@@ -3,9 +3,9 @@ using Watershed
 
 export segerror, patch_segerror
 
-include("../core/affinity.jl")
-include("../core/label.jl")
-include("../core/domains.jl")
+include("affinity.jl")
+include("seg.jl")
+include("domains.jl")
 
 # use a log version which is faster and more accurate
 import Base.Math.JuliaLibm.log

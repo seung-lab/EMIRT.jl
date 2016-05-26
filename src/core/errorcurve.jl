@@ -1,7 +1,8 @@
-using HDF5
+import Base: push!, fetch, take!
 
-typealias Tec Dict{AbstractString, Vector{Float32}}
-
+"""
+push to error curve
+"""
 function push!(ec::Tec, key::AbstractString, value::Float32)
     if haskey(ec,key)
         ec[key] = push!(ec[key], value)
@@ -34,44 +35,10 @@ function push!(ec::Tec, err::Dict{AbstractString, Float32})
     ec
 end
 
+# error curves containing multiple error curves
 """
-save the error curve
+push an error curve
 """
-function save(fname::AbstractString, ec::Tec, tag::AbstractString="ec")
-    for (k,v) in ec
-        h5write(fname, "/errorcurve/$tag/$k", v)
-    end
-end
-function saveec(fname::AbstractString, ec::Tec, tag::AbstractString="ec")
-    save(fname, ec, tag)
-end
-
-"""
-read the error curve
-"""
-function readerrorcurve(fname::AbstractString, tag::AbstractString="ec")
-    readec(fname, tag)
-end
-function readec(fname::AbstractString, tag::AbstractString="ec")
-    ec = Tec()
-    f = h5open(fname)
-    f = f["/errorcurve/$tag"]
-    ec = readec(f)
-    close(f)
-    return ec
-end
-
-function readec(f::HDF5.HDF5Group)
-    ec = Tec()
-    for k in names(f)
-        ec[ASCIIString(k)] = read(f[k])
-    end
-    return ec
-end
-
-
-typealias Tecs Dict{AbstractString, Tec}
-
 function push!(ecs::Tecs, key::AbstractString, value::Float32, tag::AbstractString="ec")
     push!(ecs[tag], key, value)
 end
@@ -80,19 +47,18 @@ function push!(ecs::Tecs, err::Dict{AbstractString, Float32}, tag::AbstractStrin
     push!(ecs[tag], err)
 end
 
-function readecs(fname::AbstractString)
-    ret = Tecs()
-    f = h5open(fname)
-    f = f["errorcurve"]
-    for tag in names(f)
-        ret[tag] = readec(f[tag])
-    end
-    close(f)
-    return ret
+"""
+fetch an error curve
+"""
+function fetch(ecs::Tecs, tag::AbstractString="ec")
+    return ecs[tag]
 end
 
-function saveecs(fname::AbstractString, ecs::Tecs)
-    for (tag,ec) in ecs
-        saveec(fname, ec, tag)
-    end
+"""
+take an error curve
+"""
+function take!(ecs::Tecs, tag::AbstractString="ec")
+    ec = ecs[tag]
+    delete!(ecs, tag)
+    return ec
 end

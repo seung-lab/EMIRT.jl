@@ -1,27 +1,24 @@
 using HDF5
+using FileIO
 
-export img2svg, imread, imsave, ecread, readtxt, readaff, saveaff
+import FileIO: save
 
-function imread(fname)
+export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff, readsgm, savesgm, readec, saveec, readecs, saveecs
+
+function imread(fname::AbstractString)
     print("reading file: $(fname) ......")
     if ishdf5(fname)
         ret =  h5read(fname, "/main")
         println("done :)")
         return ret
-    #elseif contains(fname, ".tif")
-        # @pyimport tifffile
-        # vol = tifffile.imread(fname)
-        # # transpose the dims from z,y,x to x,y,z
-        # vol = permutedims(vol, Array(ndims(vol):-1:1))
-        # println("done :)")
-        # return vol
     else
-        error("invalid file type! only support hdf5 now.")
+        # handled by FileIO
+        return load(fname)
     end
 end
 
 
-function imsave(vol::Array, fname, is_overwrite=true)
+function imsave(fname::AbstractString, vol::Array, is_overwrite=true)
     print("saving file: $(fname); ......")
     # remove existing file
     if isfile(fname) && is_overwrite
@@ -30,46 +27,65 @@ function imsave(vol::Array, fname, is_overwrite=true)
 
     if contains(fname, ".h5") || contains(fname, ".hdf5")
         h5write(fname, "/main", vol)
-    # elseif contains(fname, ".tif")
-    #     @pyimport tifffile
-    #     tifffile.imsave(fname, vol)
-    #     # emio.imsave(vol, fname)
     else
-        error("invalid image format! only support hdf5 now.")
+        # handled by FileIO
+        save(fname, vol)
     end
     println("done!")
 end
 
+
 """
-save segmentation with dendrogram
+read raw image
 """
-function imsave(fseg::AbstractString, seg::Tseg, dend::Array, dendValues::Vector)
-    # save result
-    println("save the segments and the mst...")
-    h5write(fseg, "/dend", dend)
-    h5write(fseg, "/dendValues", dendValues)
-    h5write(fseg, "/main", seg)
+function readimg(fimg::AbstractString)
+    if ishdf5(fimg)
+        f = h5open(fimg)
+        if "img" in names(f)
+            img = read(f["img"])
+        else
+            img = read(f["main"])
+        end
+        close(f)
+    else
+        img = Timg(raw(load(fimg)))
+    end
+    return img
 end
 
 """
-read the evaluation curve in a hdf5 file
-`Inputs`:
-fname: ASCIIString, file name which contains the evaluation curve
-
-`Outputs`:
-dec: Dict of evaluation curve
+save raw image
 """
-function ecread(fname)
-    ret = Dict{ASCIIString, Vector{Float32}}()
-    f = h5open(fname)
-    a = f["/processing/znn/forward/"]
-    b = a[names(a)[1]]
-    c = b[names(b)[1]]
-    d = c["evaluate_curve"]
-    for key in names(d)
-        ret[key] = read(d[key])
+function save(fimg::AbstractString, img::Timg)
+    f = h5open(fimg, "w")
+    f["img"] = img
+    close(f)
+end
+
+"""
+read segmentation
+"""
+function readseg(fseg::AbstractString)
+    if ishdf5(fseg)
+        f = h5open(fseg)
+        if "seg" in names(f)
+            seg = read(f["seg"])
+        else
+            seg = read(f["main"])
+        end
+        close(f)
+    else
+        seg = Tseg(raw(load(fseg)))
     end
-    return ret
+    return Tseg(seg)
+end
+
+"""
+"""
+function save(fseg::AbstractString, seg::Tseg)
+    f = h5open(fseg, "w")
+    f["seg"] = seg
+    close(f)
 end
 
 """
@@ -84,14 +100,100 @@ function readaff(faff::AbstractString)
         aff = read(f["main"])
     end
     close(f)
-    return aff
+    return Taff(aff)
 end
 
 """
 save affinity map
 """
-function saveaff(faff::AbstractString, aff::Taff)
-    f = h5open(faff, "r+")
+function save(faff::AbstractString, aff::Taff)
+    f = h5open(faff, "w")
     f["aff"] = aff
     close(f)
+end
+
+"""
+read segmentation with maximum spanning tree
+"""
+function readsgm(fname::AbstractString)
+    f = h5open(fname)
+    if "seg" in names(f)
+        seg = read(f["seg"])
+    else
+        @assert "main" in names(f)
+        seg = read(f["main"])
+    end
+    dend = read(f["dend"])
+    dendValues = read(f["dendValues"])
+    Tsgm(seg, dend, dendValues)
+end
+
+"""
+save segmentation with dendrogram
+"""
+function save(fsgm::AbstractString, sgm::Tsgm)
+    f = h5open(fsgm, "w")
+    f["main"] = sgm.seg
+    f["dend"] = sgm.dend
+    f["dendValues"] = sgm.dendValues
+    close(f)
+end
+function save(fsgm::AbstractString, seg::Tseg, dend::Tdend, dendValues::TdendValues)
+    savesgm( fsgm, Tsgm(seg,dend,dendValues) )
+end
+
+
+"""
+read the error curve
+"""
+function readerrorcurve(fname::AbstractString, tag::AbstractString="ec")
+    readec(fname, tag)
+end
+function readec(fname::AbstractString, tag::AbstractString="ec")
+    ec = Tec()
+    f = h5open(fname)
+    f = f["/errorcurve/$tag"]
+    ec = readec(f)
+    close(f)
+    return ec
+end
+
+function readec(f::HDF5.HDF5Group)
+    ec = Tec()
+    for k in names(f)
+        ec[ASCIIString(k)] = read(f[k])
+    end
+    return ec
+end
+
+"""
+save the error curve
+"""
+function save(fname::AbstractString, ec::Tec, tag::AbstractString="ec")
+    for (k,v) in ec
+        h5write(fname, "/errorcurve/$tag/$k", v)
+    end
+end
+
+"""
+read multiple error curves
+"""
+function readecs(fname::AbstractString)
+    ret = Tecs()
+    f = h5open(fname)
+    f = f["errorcurve"]
+    for tag in names(f)
+        ret[tag] = readec(f[tag])
+    end
+    close(f)
+    return ret
+end
+
+"""
+save learning curves
+"""
+function save(fname::AbstractString, ecs::Tecs)
+    for (tag,ec) in ecs
+        saveec(fname, ec, tag)
+    end
 end
