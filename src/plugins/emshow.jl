@@ -2,7 +2,8 @@ export show, plot
 import Images: Image
 import ImageView: view
 import Base: show
-import Gadfly: plot
+#import Gadfly: plot
+using Gadfly
 
 include("../core/seg.jl")
 include("../core/evaluate.jl")
@@ -36,20 +37,20 @@ end
 """
 plot multiple error curves
 """
-function plot(ecs::Tecs)
+function plotecs(ecs::Tecs)
     # transform to dataframe
     df = ecs2df(ecs)
     # plot the dataframe
-    prf = plot(df, x="thd", y="rf", color="tag", Geom.line,
-               Guide.xlabel("threshold"),
-               Guide.ylabel("rand f score"))
-    pre = plot(df, x="thd", y="re", color="tag", Geom.line,
+    prf = plot(df, x="thd", y="rf", Geom.line,
+               Guide.XLabel("threshold"),
+               Guide.YLabel("rand f score"))
+    pre = plot(df, x="thd", y="re", Geom.line,
                Guide.xlabel("threshold"),
                Guide.ylabel("rand error"))
-    prfms = plot(df, x="rfm", y="rfs", color="tag", Geom.line,
+    prfms = plot(df, x="rfm", y="rfs", Geom.line,
                  Guide.xlabel("rand f score of mergers"),
                  Guide.ylabel("rand f score of splitters"))
-    prems = plot(df, x="rem", y="res", color="tag", Geom.line,
+    prems = plot(df, x="rem", y="res", Geom.line,
                  Guide.xlabel("rand error of mergers"),
                  Guide.ylabel("rand error of splitters"))
     # stack the subplots
@@ -59,7 +60,7 @@ end
 """
 plot single error curve
 """
-function plot(ec::Tec)
+function plotec(ec::Tec)
     ecs = Tecs()
     append!(ecs, ec)
     plot(ecs)

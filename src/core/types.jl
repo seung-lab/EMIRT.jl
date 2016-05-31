@@ -25,6 +25,6 @@ end
 
 
 # error curve
-typealias Tec Dict{AbstractString, Vector{Float32}}
+typealias Tec Dict{Symbol, Vector{Float32}}
 # error curves
-typealias Tecs Dict{AbstractString, Tec}
+typealias Tecs Dict{Symbol, Tec}

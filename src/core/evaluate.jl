@@ -11,7 +11,7 @@ include("domains.jl")
 import Base.Math.JuliaLibm.log
 
 function segerror(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=true)
-    ret = Dict{ASCIIString, Float32}()
+    ret = Dict{Symbol, Float32}()
     # overlap matrix reprisented by dict
     om = Dict{Tuple{UInt32,UInt32},Float32}()
     si = Dict{UInt32,Float32}()
@@ -80,13 +80,13 @@ function segerror(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=tr
             HST -= pij * log( v / li[j] )
             IST += pij * log( v * N / (si[i] * li[j]) )
         end
-        ret["VI"] = HS + HT - 2*IST
-        ret["VIs"] = HST
-        ret["VIm"] = HTS
-        ret["VIS"] = - ret["VI"]
-        ret["VIFSs"] = IST / HS
-        ret["VIFSm"] = IST / HT
-        ret["VIFS"] = 2*IST / (HT + HS)
+        ret[:VI] = HS + HT - 2*IST
+        ret[:VIs] = HST
+        ret[:VIm] = HTS
+        ret[:VIS] = - ret[:VI]
+        ret[:VIFSs] = IST / HS
+        ret[:VIFSm] = IST / HT
+        ret[:VIFS] = 2*IST / (HT + HS)
     else
         ssum  = sum(pmap(x->x*(x-1)/2, values(si)))
         lsum  = sum(pmap(x->x*(x-1)/2, values(li)))
@@ -99,18 +99,18 @@ function segerror(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=tr
     TN = Np - TP - FP - FN
 
     # rand error
-    ret["res"] = FN / Np
-    ret["rem"] = FP / Np
-    ret["re"] = ret["rem"] + ret["res"]
+    ret[:res] = FN / Np
+    ret[:rem] = FP / Np
+    ret[:re] = ret[:rem] + ret[:res]
     # rand index
-    ret["ris"] = TN / Np
-    ret["rim"] = TP / Np
-    ret["ri"] = ret["rim"] + ret["ris"]
+    ret[:ris] = TN / Np
+    ret[:rim] = TP / Np
+    ret[:ri] = ret[:rim] + ret[:ris]
 
     # rand f score
-    ret["rfs"] = TP / (TP + FN)
-    ret["rfm"] = TP / (TP + FP)
-    ret["rf"] = 2*TP / (2*TP + FP + FN)
+    ret[:rfs] = TP / (TP + FN)
+    ret[:rfm] = TP / (TP + FP)
+    ret[:rf] = 2*TP / (2*TP + FP + FN)
     return ret
 end
 

@@ -57,6 +57,7 @@ function sgm2ec(sgm::Tsgm, lbl::Tseg, thds = 0:0.1:1)
     ec = Tec()
     for thd in thds
         e = sgm2error(sgm, lbl, thd)
+        e[:thd] = thd
         append!(ec, e)
     end
     ec

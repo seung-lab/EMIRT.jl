@@ -4,12 +4,12 @@ using EMIRT
 """
 transform error curve to dataframe
 """
-function ec2df(ec::Tec, tag::AbstractString="ec")
+function ec2df(ec::Tec, tag::Symbol=:ec)
     df = DataFrame()
     for (k,v) in ec
-        df[Symbol(k)] = v
+        df[k] = v
     end
-    df[:tag] = [tag for i in 1:length(values(ec)[1])]
+    df[:tag] = tag
     return df
 end
 
