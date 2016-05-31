@@ -3,7 +3,7 @@ using FileIO
 
 import FileIO: save
 
-export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff, readsgm, savesgm, readec, saveec, readecs, saveecs
+export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff, issgmfile, readsgm, savesgm, readec, saveec, readecs, saveecs, save
 
 function imread(fname::AbstractString)
     print("reading file: $(fname) ......")
@@ -62,6 +62,10 @@ function save(fimg::AbstractString, img::Timg)
     close(f)
 end
 
+function saveimg(fimg::AbstractString, img::Timg)
+    save(fimg, img)
+end
+
 """
 read segmentation
 """
@@ -88,6 +92,10 @@ function save(fseg::AbstractString, seg::Tseg)
     close(f)
 end
 
+function saveseg(fseg::AbstractString, seg::Tseg)
+    save(fseg,seg)
+end
+
 """
 read affinity map
 """
@@ -110,6 +118,27 @@ function save(faff::AbstractString, aff::Taff)
     f = h5open(faff, "w")
     f["aff"] = aff
     close(f)
+end
+
+function saveaff(faff::AbstractString, aff::Taff)
+    save(faff, aff)
+end
+
+"""
+whether a file is a sgm file
+if the file do not exist, reture false
+"""
+function issgmfile(fname::AbstractString)
+    if !isfile(fname)
+        return false
+    else
+        f = h5open(fname)
+        if "dend" in names(f)
+            return true
+        else
+            return false
+        end
+    end
 end
 
 """
@@ -142,13 +171,13 @@ function save(fsgm::AbstractString, seg::Tseg, dend::Tdend, dendValues::TdendVal
     savesgm( fsgm, Tsgm(seg,dend,dendValues) )
 end
 
+function savesgm(fsgm::AbstractString, sgm)
+    save(fsgm, sgm)
+end
 
 """
 read the error curve
 """
-function readerrorcurve(fname::AbstractString, tag::AbstractString="ec")
-    readec(fname, tag)
-end
 function readec(fname::AbstractString, tag::AbstractString="ec")
     ec = Tec()
     f = h5open(fname)
@@ -174,6 +203,9 @@ function save(fname::AbstractString, ec::Tec, tag::AbstractString="ec")
         h5write(fname, "/errorcurve/$tag/$k", v)
     end
 end
+function saveec(fec::AbstractString, ec::Tec, tag::AbstractString="ec")
+    save(fec, ec, tag)
+end
 
 """
 read multiple error curves
@@ -196,4 +228,7 @@ function save(fname::AbstractString, ecs::Tecs)
     for (tag,ec) in ecs
         saveec(fname, ec, tag)
     end
+end
+function saveecs(fecs::AbstractString, ecs::Tecs)
+    save(fecs, ecs)
 end

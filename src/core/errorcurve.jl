@@ -1,36 +1,40 @@
-import Base: push!, fetch, take!
+export append!, fetch, take!
+
+import Base: append!, fetch, take!
 
 """
 push to error curve
 """
-function push!(ec::Tec, key::AbstractString, value::Float32)
+function append!(ec::Tec, key::AbstractString, value::Float32)
     if haskey(ec,key)
         ec[key] = push!(ec[key], value)
     else
         ec[key] = [value]
     end
+    ec
 end
 
-function push!(ec::Tec, thd::Float32, rf::Float32, rfm::Float32,
+function append!(ec::Tec, thd::Float32, rf::Float32, rfm::Float32,
                rfs::Float32, re::Float32, rem::Float32, res::Float32)
-    push!(ec, "thd", thd)
-    push!(ec, "rf",  rf)
-    push!(ec, "rfm", rfm)
-    push!(ec, "rfs", rfs)
-    push!(ec, "re",  re)
-    push!(ec, "rem", rem)
-    push!(ec, "res", res)
+    append!(ec, "thd", thd)
+    append!(ec, "rf",  rf)
+    append!(ec, "rfm", rfm)
+    append!(ec, "rfs", rfs)
+    append!(ec, "re",  re)
+    append!(ec, "rem", rem)
+    append!(ec, "res", res)
+    ec
 end
 
-function push!(ec::Tec, thd::Float32, err::Dict{AbstractString, Float32})
+function append!(ec::Tec, thd::Float32, err::Dict{AbstractString, Float32})
     @assert !haskey(err, "thd")
-    push!(ec, "thd", thd)
-    push!(ec, err)
+    append!(ec, "thd", thd)
+    append!(ec, err)
 end
 
-function push!(ec::Tec, err::Dict{AbstractString, Float32})
+function append!(ec::Tec, err::Dict{ASCIIString, Float32})
     for (k,v) in err
-        push!(ec, k, v)
+        append!(ec, k, v)
     end
     ec
 end
@@ -39,12 +43,14 @@ end
 """
 push an error curve
 """
-function push!(ecs::Tecs, key::AbstractString, value::Float32, tag::AbstractString="ec")
-    push!(ecs[tag], key, value)
+function append!(ecs::Tecs, key::AbstractString, value::Float32, tag::AbstractString="ec")
+    append!(ecs[tag], key, value)
+    ecs
 end
 
-function push!(ecs::Tecs, err::Dict{AbstractString, Float32}, tag::AbstractString="ec")
-    push!(ecs[tag], err)
+function append!(ecs::Tecs, err::Dict{AbstractString, Float32}, tag::AbstractString="ec")
+    append!(ecs[tag], err)
+    ecs
 end
 
 """

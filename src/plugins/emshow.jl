@@ -1,14 +1,14 @@
 export show, plot
-using Gadfly
 import Images: Image
 import ImageView: view
+import Base: show
+import Gadfly: plot
 
 include("../core/seg.jl")
 include("../core/evaluate.jl")
 include("../core/errorcurve.jl")
 include("utils.jl")
 
-import Base: show
 # show segmentationx
 function show( seg::Tseg )
     @assert ndims(seg)==3
@@ -54,4 +54,13 @@ function plot(ecs::Tecs)
                  Guide.ylabel("rand error of splitters"))
     # stack the subplots
     plt = vstack(hstack(prf,prfms), hstack(pre, prems))
+end
+
+"""
+plot single error curve
+"""
+function plot(ec::Tec)
+    ecs = Tecs()
+    append!(ecs, ec)
+    plot(ecs)
 end

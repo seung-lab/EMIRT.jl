@@ -10,7 +10,7 @@ include("domains.jl")
 # use a log version which is faster and more accurate
 import Base.Math.JuliaLibm.log
 
-function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
+function segerror(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=true)
     ret = Dict{ASCIIString, Float32}()
     # overlap matrix reprisented by dict
     om = Dict{Tuple{UInt32,UInt32},Float32}()
@@ -22,7 +22,7 @@ function segerror(seg::Array, lbl::Array, is_fr=true, is_selfpair=true)
     for iter in eachindex(lbl)
         lid = lbl[iter]
         # foreground restriction
-        if is_fr && lid == 0
+        if is_fr && (lid == 0)
             continue
         end
         N += 1
