@@ -1,5 +1,5 @@
 include( "domains.jl" )
-include("label.jl")
+include("seg.jl")
 include("types.jl")
 
 export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
