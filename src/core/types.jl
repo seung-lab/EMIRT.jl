@@ -1,5 +1,5 @@
 
-export Tseg, Taff, Tpd, Tsgm
+export Timg, Tseg, Taff, Tpd, Tsgm, Tdend, TdendValues, Tec, Tecs
 
 # type of raw image
 typealias Timg Array{UInt8,3}
