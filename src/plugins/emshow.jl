@@ -26,7 +26,10 @@ end
 function show(img::Timg, seg::Tseg)
     # combined rgb image stack
     cmb = seg_overlay_img(img, seg)
-    view(Image(cmb, colordim=4, spatialorder=["x","y","z"]))
+    imgc, imgslice = view(Image(cmb, colordim=4, spatialorder=["x","y","z"]))
+    # return imgc and imgslice for visualization in a script
+    # https://github.com/timholy/ImageView.jl#calling-view-from-a-script-file
+    return imgc, imgslice
 end
 
 # show affinity map
