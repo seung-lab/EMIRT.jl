@@ -145,10 +145,10 @@ function patch_segerror(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
     end
 
     # initialize the evaluate result dict
-    ret = Dict{ASCIIString, Float32}()
-    ret["ri"] = 0;   ret["ris"] = 0;   ret["rim"] = 0;
-    ret["rf"] = 0;   ret["rfs"] = 0;   ret["rfm"] = 0;
-    ret["VIFS"] = 0; ret["VIFSs"] = 0; ret["VIFSm"] = 0;
+    ret = Dict{Symbol, Float32}()
+    ret[:ri] = 0;   ret[:ris] = 0;   ret[:rim] = 0;
+    ret[:rf] = 0;   ret[:rfs] = 0;   ret[:rfm] = 0;
+    ret[:VIFS] = 0; ret[:VIFSs] = 0; ret[:VIFSm] = 0;
 
     # number of patches
     Np = 0

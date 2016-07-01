@@ -1,6 +1,6 @@
 export autoparse, configparser, argparser!, shareprms!
 
-typealias Tpdconf Dict{AbstractString, Dict{AbstractString, Any}}
+typealias Tpdconf Dict{Symbol, Dict{Symbol, Any}}
 
 function str2list(s, splitter=";")
     ret = []
@@ -15,7 +15,7 @@ end
 # auto conversion of string
 function autoparse(s)
     if s==""
-        return s
+        return nothing
     elseif contains(s, ";")
         return str2list(s, ";")
     elseif length(s)>1 && s[1]=='('
@@ -59,7 +59,7 @@ function configparser(lines::Vector)
     # initialize the parameter dictionary
     pd = Tpdconf()
     # default section name
-    sec = "section"
+    sec = :section
     # analysis the lines
     for l in lines
         # remove space and \n
@@ -70,10 +70,11 @@ function configparser(lines::Vector)
         elseif ismatch(r"^\s*\[.*\]", l)
             # update the section name
             m = match(r"\[.*\]", l)
-            sec = m.match[2:end-1]
+            sec = Symbol( m.match[2:end-1] )
             pd[sec] = Dict()
         elseif ismatch(r"^\s*.*\s*=", l)
             k, v = split(l, '=')
+            k = Symbol(k)
             # assign value to dictionary
             pd[sec][k] = autoparse( v )
         end
@@ -95,7 +96,7 @@ function dagparser(lines::Vector)
     # temporary dictionary
 
     # default section name
-    sec = "section"
+    sec = :section
     # analysis the lines
     for l in lines
         # remove space and \n
@@ -106,10 +107,11 @@ function dagparser(lines::Vector)
         elseif ismatch(r"^\s*\[.*\]", l)
             # update the section name
             m = match(r"\[.*\]", l)
-            sec = m.match[2:end-1]
+            sec = Symbol( m.match[2:end-1] )
             pd[sec] = Dict()
         elseif ismatch(r"^\s*.*\s*=", l)
             k, v = split(l, '=')
+            k = Symbol(k)
             # assign value to dictionary
             pd[sec][k] = autoparse( v )
         end
@@ -125,10 +127,10 @@ Note that all the key was one character, which is the first non '-' character!
 suppose that the argument is as follows:
 --flbl label.h5 --range 2,4-6
 the returned dictionary will be
-pd['f'] = "label.h5"
-pd['r'] = [2,4,5,6]
+pd[:f] = "label.h5"
+pd[:r] = [2,4,5,6]
 """
-function argparser!(pd::Dict=Dict() )
+function argparser!(pd::Dict{Symbol, Any}=Dict() )
     println("default parameters: $(pd)")
     # argument table, two rows
     @assert length(ARGS) % 2 ==0
@@ -138,7 +140,7 @@ function argparser!(pd::Dict=Dict() )
     for c in 1:size(argtbl,2)
         @assert argtbl[1,c][1]=='-'
         # key and value
-        k = replace(argtbl[1,c],"-","")[1]
+        k = Symbol( replace(argtbl[1,c],"-","")[1] )
         v = autoparse( argtbl[2,c] )
         pd[k] = v
     end
@@ -146,7 +148,7 @@ function argparser!(pd::Dict=Dict() )
 end
 
 # share the gneral parameters in each section
-function shareprms!(pd::Tpdconf, gnkey::AbstractString="gn", is_keep=true)
+function shareprms!(pd::Tpdconf, gnkey::Symbol=:gn, is_keep=true)
     @assert haskey(pd, gnkey)
     for k1 in keys(pd)
         if k1 != gnkey

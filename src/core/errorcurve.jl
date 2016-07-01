@@ -43,18 +43,18 @@ end
 """
 append an error curve
 """
-function append!(ecs::Tecs, key::Symbol, value::Float32, tag::AbstractString="ec")
+function append!(ecs::Tecs, key::Symbol, value::Float32, tag::Symbol=:ec)
     append!(ecs[tag], key, value)
     ecs
 end
 
-function append!(ecs::Tecs, err::Dict{Symbol, Float32}, tag::AbstractString="ec")
+function append!(ecs::Tecs, err::Dict{Symbol, Float32}, tag::Symbol=:ec)
     append!(ecs[tag], err)
     ecs
 end
 
-function append!(ecs::Tecs, ec::Tec, tag::AbstractString="ec")
-    k1 = Symbol(tag)
+function append!(ecs::Tecs, ec::Tec, tag::Symbol=:ec)
+    k1 = tag
     if haskey(ecs, k1)
         for (k2,v2) in ec
             ecs[k1] = append!(ecs[k1], ec)
@@ -69,14 +69,14 @@ end
 """
 fetch an error curve
 """
-function fetch(ecs::Tecs, tag::AbstractString="ec")
+function fetch(ecs::Tecs, tag::Symbol=:ec)
     return ecs[tag]
 end
 
 """
 take an error curve
 """
-function take!(ecs::Tecs, tag::AbstractString="ec")
+function take!(ecs::Tecs, tag::Symbol=:ec)
     ec = ecs[tag]
     delete!(ecs, tag)
     return ec

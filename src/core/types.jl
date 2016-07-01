@@ -11,7 +11,7 @@ typealias Tseg Array{UInt32,3}
 typealias Taff Array{Float32,4}
 
 # type of parameter dictionary
-typealias Tpd Dict{AbstractString, Dict{AbstractString, Any}}
+typealias Tpd Dict{Symbol, Dict{Symbol, Any}}
 
 typealias Tdend Array{UInt32,2}
 

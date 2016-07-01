@@ -15,8 +15,8 @@ function build_env()
     elseif isfile(joinpath(homedir(), ".aws/credentials"))
         # get key from aws credential file
         pd = configparser(joinpath(homedir(), ".aws/credentials"))
-        id = pd["default"]["aws_access_key_id"]
-        key = pd["default"]["aws_secret_access_key"]
+        id = pd[:default][:aws_access_key_id]
+        key = pd[:default][:aws_secret_access_key]
         return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
     else
         return AWSEnv(; ec2_creds=true, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)

@@ -14,8 +14,17 @@ lst_fname = readdir(srcDir)
 for c in 0:2
     for z in 0:101
         fname = joinpath(srcDir, "c$(c)_z$(format(z, width=5, zeropadding=true)).tiff")
-        img = Array{Float32,2}( load(fname).data )
-        aff[:,:,z+1,c+1] = img
+        aff2d = Array{Float32,2}( load(fname).data )
+        # transpose the image for tif loading
+        aff2d = permutedims(aff2d, [2,1])
+        # also swap the x and y channel
+        if c==0
+            aff[:,:,z+1,2] = aff2d
+        elseif c==1
+            aff[:,:,z+1,1] = aff2d
+        else
+            aff[:,:,z+1,c+1] = aff2d
+        end
     end
 end
 

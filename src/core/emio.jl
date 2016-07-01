@@ -48,7 +48,13 @@ function readimg(fimg::AbstractString)
         end
         close(f)
     else
-        img = Timg(raw(load(fimg)))
+        img = reinterpret(UInt8, load(fimg).data)
+        if contains(fimg, ".tif")
+            # transpose the X and Y
+            perm = Vector{Int64}( 1:ndims(img) )
+            perm[1:2] = [2,1]
+            img = permutedims(img, perm)
+        end
     end
     return img
 end
@@ -79,7 +85,14 @@ function readseg(fseg::AbstractString)
         end
         close(f)
     else
-        seg = Tseg(raw(load(fseg)))
+        seg = reinterpret(UInt32, load(fseg).data)
+        if contains(fimg, ".tif")
+            # transpose the X and Y
+            perm = Vector{Int64}( 1:ndims(seg) )
+            perm[1:2] = [2,1]
+            seg = permutedims(seg, perm)
+        end
+
     end
     return Tseg(seg)
 end

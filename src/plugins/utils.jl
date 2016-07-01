@@ -9,7 +9,7 @@ function ec2df(ec::Tec, tag::Symbol=:ec)
     for (k,v) in ec
         df[k] = v
     end
-    df[:tag] = tag
+    df[tag] = tag
     return df
 end
 
