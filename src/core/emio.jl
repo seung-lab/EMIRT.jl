@@ -62,14 +62,14 @@ end
 """
 save raw image
 """
-function save(fimg::AbstractString, img::Timg)
+function save(fimg::AbstractString, img::Timg, dname::AbstractString="img")
     f = h5open(fimg, "w")
-    f["img"] = img
+    f[dname] = img
     close(f)
 end
 
-function saveimg(fimg::AbstractString, img::Timg)
-    save(fimg, img)
+function saveimg(fimg::AbstractString, img::Timg, dname::AbstractString="img")
+    save(fimg, img, dname)
 end
 
 """
@@ -99,14 +99,14 @@ end
 
 """
 """
-function save(fseg::AbstractString, seg::Tseg)
+function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
     f = h5open(fseg, "w")
-    f["seg"] = seg
+    f[dname] = seg
     close(f)
 end
 
-function saveseg(fseg::AbstractString, seg::Tseg)
-    save(fseg,seg)
+function saveseg(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
+    save(fseg,seg, dname)
 end
 
 """
@@ -127,14 +127,14 @@ end
 """
 save affinity map
 """
-function save(faff::AbstractString, aff::Taff)
+function save(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
     f = h5open(faff, "w")
-    f["aff"] = aff
+    f[dname] = aff
     close(f)
 end
 
-function saveaff(faff::AbstractString, aff::Taff)
-    save(faff, aff)
+function saveaff(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
+    save(faff, aff, dname)
 end
 
 """

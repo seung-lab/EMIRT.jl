@@ -23,7 +23,6 @@ immutable Tsgm
     dendValues::TdendValues
 end
 
-
 # error curve
 typealias Tec Dict{Symbol, Vector{Float32}}
 # error curves

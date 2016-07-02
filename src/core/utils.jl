@@ -2,7 +2,7 @@
 Utilities
 =#
 
-export percent2thd
+export percent2thd, crop_border
 
 #=doc
 .. function::
@@ -28,4 +28,18 @@ end
 function percent2thd(arr::Array, rt::AbstractFloat, nbin=100000)
     e, count = hist(arr[:], nbin)
     return percent2thd(e, count, rt)
+end
+
+"""
+throwaway the border region of an array (ndims > 3), currently only works for 3D cropsize.
+"""
+function crop_border(arr::Array, cropsize::Union{Vector,Tuple})
+    @assert ndims(arr) >= 3
+    sz = size(arr)
+    @assert sz[1]>cropsize[1]*2 &&
+            sz[2]>cropsize[2]*2 &&
+            sz[3]>cropsize[3]*2
+    return arr[ cropsize[1]+1:sz[1]-cropsize[1],
+                cropsize[2]+1:sz[2]-cropsize[2],
+                cropsize[3]+1:sz[3]-cropsize[3]]
 end
