@@ -41,7 +41,7 @@ read raw image
 function readimg(fimg::AbstractString)
     if ishdf5(fimg)
         f = h5open(fimg)
-        if "img" in names(f)
+        if has(f, "img")
             img = read(f["img"])
         else
             img = read(f["main"])
@@ -78,9 +78,10 @@ read segmentation
 function readseg(fseg::AbstractString)
     if ishdf5(fseg)
         f = h5open(fseg)
-        if "seg" in names(f)
+        if has(f, "seg")
             seg = read(f["seg"])
         else
+            @assert has(f, "main")
             seg = read(f["main"])
         end
         close(f)
@@ -114,10 +115,10 @@ read affinity map
 """
 function readaff(faff::AbstractString)
     f = h5open(faff)
-    if "aff" in names(f)
+    if has(f, "aff")
         aff = read(f["aff"])
     else
-        @assert "main" in names(f)
+        @assert has(f, "main")
         aff = read(f["main"])
     end
     close(f)
@@ -146,7 +147,7 @@ function issgmfile(fname::AbstractString)
         return false
     else
         f = h5open(fname)
-        if "dend" in names(f)
+        if has(f, "dend")
             return true
         else
             return false
@@ -159,10 +160,10 @@ read segmentation with maximum spanning tree
 """
 function readsgm(fname::AbstractString)
     f = h5open(fname)
-    if "seg" in names(f)
+    if has(f, "seg")
         seg = read(f["seg"])
     else
-        @assert "main" in names(f)
+        @assert has(f, "main")
         seg = read(f["main"])
     end
     dend = read(f["dend"])
