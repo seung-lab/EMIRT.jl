@@ -8,7 +8,7 @@ build aws envariament
 automatically fetch key from awscli credential file
 """
 function build_env()
-    if haskey(ENV, "ACCESS_KEY_ID") && haskey(ENV, "SECRET_ACCESS_KEY")
+    if haskey(ENV, "AWS_ACCESS_KEY_ID") && haskey(ENV, "AWS_SECRET_ACCESS_KEY")
         id = ENV["ACCESS_KEY_ID"]
         key = ENV["SECRET_ACCESS_KEY"]
         return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
