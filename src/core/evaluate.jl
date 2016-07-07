@@ -3,7 +3,7 @@ using Watershed
 
 export segerror, patch_segerror
 
-include("affinity.jl")
+include("aff.jl")
 include("seg.jl")
 include("domains.jl")
 

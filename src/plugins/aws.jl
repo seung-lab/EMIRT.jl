@@ -145,18 +145,18 @@ path: path
 `Outputs`:
 ret: list of objects
 """
-function s3_list_objects(env::AWSEnv, path::AbstractString)
+function s3_list_objects(env::AWSEnv, path::AbstractString, re::Regex = r"^\s*")
     bkt, prefix = splitbktprefix(path)
-    return s3_list_objects(env, bkt, prefix)
+    return s3_list_objects(env, bkt, prefix, re)
 end
-function s3_list_objects(path::AbstractString)
+function s3_list_objects(path::AbstractString, re::Regex = r"^\s*")
     bkt, prefix = splitbktprefix(path)
-    return s3_list_objects(bkt, prefix)
+    return s3_list_objects(bkt, prefix, re)
 end
-function s3_list_objects(bkt::AbstractString, prefix::AbstractString)
-    return s3_list_objects(env, bkt, prefix)
+function s3_list_objects(bkt::AbstractString, prefix::AbstractString, re::Regex = r"^\s*")
+    return s3_list_objects(env, bkt, prefix, re)
 end
-function s3_list_objects(env::AWSEnv, bkt::AbstractString, prefix::AbstractString)
+function s3_list_objects(env::AWSEnv, bkt::AbstractString, prefix::AbstractString, re::Regex = r"^\s*")
     prefix = lstrip(prefix, '/')
     # prefix = path=="" ? path : rstrip(path, '/')*"/"
     bucket_options = AWS.S3.GetBucketOptions(delimiter="/", prefix=prefix)
@@ -165,7 +165,7 @@ function s3_list_objects(env::AWSEnv, bkt::AbstractString, prefix::AbstractStrin
     keylst = Vector{ASCIIString}()
     for content in resp.obj.contents
         fname = replace(content.key, prefix, "")
-        if fname!=""
+        if fname!="" && ismatch(re, fname)
             push!(keylst, content.key)
         end
     end
