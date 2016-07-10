@@ -1,3 +1,4 @@
+using EMIRT
 using AWS
 using AWS.SQS
 using AWS.S3
@@ -12,9 +13,9 @@ function build_env()
         id = ENV["AWS_ACCESS_KEY_ID"]
         key = ENV["AWS_SECRET_ACCESS_KEY"]
         return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
-    elseif isfile(joinpath(homedir(), ".aws/credentials"))
+    elseif isfile(joinpath(homedir(), ".aws/config"))
         # get key from aws credential file
-        pd = configparser(joinpath(homedir(), ".aws/credentials"))
+        pd = configparser(joinpath(homedir(), ".aws/config"))
         id = pd[:default][:aws_access_key_id]
         key = pd[:default][:aws_secret_access_key]
         return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
