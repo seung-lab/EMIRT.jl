@@ -12,7 +12,7 @@ fseg = ARGS[2]
 img = readimg(fimg)
 seg = readseg(fseg)
 
-include(joinpath(Pkg.dir(), "EMIRT/src/plugins/emshow.jl"))
+include(joinpath(Pkg.dir(), "EMIRT/plugins/emshow.jl"))
 
 imgc, imgslice = show(img, seg)
 
