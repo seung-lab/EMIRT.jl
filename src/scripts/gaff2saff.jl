@@ -6,25 +6,23 @@ using Formatting
 srcDir = ARGS[1]
 dstFile = ARGS[2]
 
+# parameters
+
+
 # read images
-aff = zeros(Float32, (2048,2048,102,3))
+aff = zeros(Float32, (2000,2000,100,3))
 
 lst_fname = readdir(srcDir)
 
-for c in 0:2
-    for z in 0:101
-        fname = joinpath(srcDir, "c$(c)_z$(format(z, width=5, zeropadding=true)).tiff")
+for c in 1:3
+    for z in 2:101
+	info("section $z")
+	fname = joinpath(srcDir, "c$(format(c-1, width=5, zeropadding=true))_z$(format(z-1, width=5, zeropadding=true))_y20000_x17000.tiff")
         aff2d = Array{Float32,2}( load(fname).data )
         # transpose the image for tif loading
         aff2d = permutedims(aff2d, [2,1])
         # also swap the x and y channel
-        if c==0
-            aff[:,:,z+1,2] = aff2d
-        elseif c==1
-            aff[:,:,z+1,1] = aff2d
-        else
-            aff[:,:,z+1,c+1] = aff2d
-        end
+        aff[:,:,z,c] = aff2d
     end
 end
 

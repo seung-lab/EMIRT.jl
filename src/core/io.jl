@@ -63,8 +63,11 @@ end
 save raw image
 """
 function save(fimg::AbstractString, img::Timg, dname::AbstractString="img")
+    if isfile(fimg)
+        rm(fimg)
+    end
     f = h5open(fimg, "w")
-    f[dname] = img
+    f[dname,"chunk", (8,8), "shuffle", (), "deflate", 3] = img
     close(f)
 end
 
@@ -73,10 +76,57 @@ function saveimg(fimg::AbstractString, img::Timg, dname::AbstractString="img")
 end
 
 """
+permute dims of x and y for tif images
+"""
+function permutetifdims!(arr::Array)
+    # transpose the X and Y
+    p = Vector{Int64}( 1:ndims(arr) )
+    p[1] = 2
+    p[2] = 1
+    arr = permutedims(arr, p)
+    arr
+end
+
+"""
 read segmentation
+for directory, currently only tested with VAST output
 """
 function readseg(fseg::AbstractString)
-    if ishdf5(fseg)
+    if isdir(fseg)
+        error("reading from directory is not correct now.")
+        files_all = readdir(fseg)
+        # only collect the tif images
+        files = Vector{eltype(files_all)}()
+        # get full path
+        for file in files_all
+            if contains(file,".tif")
+                push!(files, joinpath(fseg, file))
+            end
+        end
+        @assert length(files) > 0
+        # read one tif and get size
+        sz = length(files)
+        image2d = load(files[1])
+        if contains(image2d.properties["colorspace"], "RGB")
+            tmp = reinterpret(UInt8, image2d.data)
+            sc,sx,sy = size(tmp)
+            seg = zeros(UInt32, (sx,sy,sz))
+            for z in 1:sz
+                tmp = reinterpret(UInt8, load(files[z]).data)
+                tmp = Array{UInt32, 3}(tmp)
+                im = tmp[1,:,:].*256.*256 + tmp[2,:,:].*256 + tmp[3,:,:]
+                seg[:,:,z] = reshape(im,(sx,sy))
+            end
+        else
+            tmp = reinterpret(UInt32, image2d.data)
+            sx,sy = size(tmp)
+            seg = zeros(UInt32,(sx,sy,sz))
+            for z in 1:sz
+                seg[:,:,z] = reinterpret(UInt32, load(files[z]).data)
+            end
+        end
+        seg = permutetifdims!(seg)
+    elseif ishdf5(fseg)
         f = h5open(fseg)
         if has(f, "seg")
             seg = read(f["seg"])
@@ -85,15 +135,21 @@ function readseg(fseg::AbstractString)
             seg = read(f["main"])
         end
         close(f)
-    else
-        seg = reinterpret(UInt32, load(fseg).data)
-        if contains(fimg, ".tif")
-            # transpose the X and Y
-            perm = Vector{Int64}( 1:ndims(seg) )
-            perm[1:2] = [2,1]
-            seg = permutedims(seg, perm)
+    elseif contains(fseg, ".tif")
+        error("reading tif is not correct now..")
+        image = load(fseg)
+        if contains( image.properties["colorspace"], "RGB")
+            tmp = reinterpret(UInt8,image.data)
+            tmp = Array{UInt32, 4}(tmp)
+            sc,sx,sy,sz = size(tmp)
+            seg = tmp[1,:,:,:].*256.*256 + tmp[2,:,:,:].*256 + tmp[3,:,:,:]
+            seg = reshape(seg, (sx,sy,sz))
+        else
+            seg = reinterpret(UInt32, image.data)
         end
-
+        seg = permutetifdims!(seg)
+    else
+        error("unsupported file format!")
     end
     return Tseg(seg)
 end
@@ -101,8 +157,11 @@ end
 """
 """
 function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
+    if isfile(fseg)
+        rm(fseg)
+    end
     f = h5open(fseg, "w")
-    f[dname] = seg
+    f[dname,"chunk", (8,8), "shuffle", (), "deflate", 3] = seg
     close(f)
 end
 
@@ -129,8 +188,11 @@ end
 save affinity map
 """
 function save(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
+    if isfile(faff)
+        rm(faff)
+    end
     f = h5open(faff, "w")
-    f[dname] = aff
+    f[dname,"chunk", (8,8), "shuffle", (), "deflate", 3] = aff
     close(f)
 end
 

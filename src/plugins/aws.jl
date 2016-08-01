@@ -88,6 +88,15 @@ function iss3(fname)
 end
 
 """
+split a s3 path to bucket name and key
+"""
+function splits3(path::AbstractString)
+    path = replace(path, "s3://", "")
+    bkt, key = split(path, "/", limit = 2)
+    return ASCIIString(bkt), ASCIIString(key)
+end
+
+"""
 transfer s3 file to local and return local file name
 `Inputs:`
 env: AWS enviroment
@@ -97,42 +106,33 @@ lcname: String, local temporal folder path or local file name
 `Outputs:`
 lcname: String, local file name
 """
-function Base.download(env::AWSEnv, s3name::AbstractString, tmpdir::AbstractString)
+function Base.download(env::AWSEnv, s3fname::AbstractString, lcfname::AbstractString)
     # directly return if not s3 file
-    if !iss3(s3name)
-        return s3name
+    if !iss3(s3fname)
+        return s3fname
     end
 
-    @assert isdir(tmpdir)
-    # get the file name
-
-    dir, fname = splitdir(s3name)
-    dir = replace(dir, "s3://", "")
-    # local directory
-    lcdir = joinpath(tmpdir, dir)
-    # local file name
-    lcfname = joinpath(lcdir, fname)
+    if isdir(lcfname)
+        lcfname = joinpath(lcfname, basename(s3fname))
+    end
     # remove existing file
     if isfile(lcfname)
         rm(lcfname)
-    else
+    elseif !isdir(dirname(lcfname))
         # create local directory
-        mkpath(lcdir)
+        mkdir(dirname(lcfname))
     end
+    # get bucket name and key
+    bkt,key = splits3(s3fname)
     # download s3 file using awscli
-    run(`aws s3 cp $(s3name) $(lcfname)`)
+    f = open(lcfname, "w")
+    resp = S3.get_object(env, bkt, key)
+    # check that the file exist
+    @assert resp.http_code == 200
+    write( f, resp.obj )
+    close(f)
+    # run(`aws s3 cp $(s3name) $(lcfname)`)
     return lcfname
-end
-
-"""
-split the path to bucket name and prefix
-"""
-function splitbktprefix(path::AbstractString)
-    path = replace(path, "s3://", "")
-    bkt, prefix = split(path, "/", limit = 2)
-    bkt = ASCIIString(bkt)
-    prefix = ASCIIString(prefix)
-    return bkt, prefix
 end
 
 """
@@ -147,11 +147,11 @@ path: path
 ret: list of objects
 """
 function s3_list_objects(env::AWSEnv, path::AbstractString, re::Regex = r"^\s*")
-    bkt, prefix = splitbktprefix(path)
+    bkt, prefix = splits3(path)
     return s3_list_objects(env, bkt, prefix, re)
 end
 function s3_list_objects(path::AbstractString, re::Regex = r"^\s*")
-    bkt, prefix = splitbktprefix(path)
+    bkt, prefix = splits3(path)
     return s3_list_objects(bkt, prefix, re)
 end
 function s3_list_objects(bkt::AbstractString, prefix::AbstractString, re::Regex = r"^\s*")
