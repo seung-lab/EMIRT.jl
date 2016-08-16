@@ -31,6 +31,4 @@ install:
         - sudo mv ~__init__.py~ __init__.py
 
 script:
-        - cd ~/.julia/v0.4/EMIRT
-        - git checkout parallel
         - julia -e 'Pkg.test("EMIRT")'
