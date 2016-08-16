@@ -1,4 +1,4 @@
-export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!, seg2sgm
+export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!, seg2sgm, segid1N!
 
 include("domains.jl")
 
