@@ -5,9 +5,9 @@ import Base: show
 #import Gadfly: plot
 using Gadfly
 
-include("../core/seg.jl")
-include("../core/evaluate.jl")
-include("../core/errorcurve.jl")
+include("../src/seg.jl")
+include("../src/evaluate.jl")
+include("../src/errorcurve.jl")
 include("utils.jl")
 
 # show segmentationx
