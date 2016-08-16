@@ -2,7 +2,7 @@ using EMIRT
 using AWS
 using AWS.SQS
 using AWS.S3
-export build_env, iss3, s3_list_objects, fetchSQSmessage, takeSQSmessage!, sendSQSmessage
+export build_env, iss3, s3_list_objects, fetchSQSmessage, takeSQSmessage!, deleteSQSmessage, sendSQSmessage
 
 """
 build aws envariament
@@ -13,9 +13,13 @@ function build_env()
         id = ENV["AWS_ACCESS_KEY_ID"]
         key = ENV["AWS_SECRET_ACCESS_KEY"]
         return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
-    elseif isfile(joinpath(homedir(), ".aws/config"))
+    elseif isfile(joinpath(homedir(), ".aws/config")) || isfile(joinpath(homedir(), ".aws/credentials"))
         # get key from aws credential file
-        pd = configparser(joinpath(homedir(), ".aws/config"))
+        if isfile(joinpath(homedir(), ".aws/credentials"))
+            pd = configparser(joinpath(homedir(), ".aws/credentials"))
+        else
+            pd = configparser(joinpath(homedir(), ".aws/config"))
+        end
         id = pd[:default][:aws_access_key_id]
         key = pd[:default][:aws_secret_access_key]
         return AWSEnv(; id=id, key=key, ec2_creds=false, scheme="https", region="us-east-1", ep="", sig_ver=4, timeout=0.0, dr=false, dbg=false)
@@ -59,16 +63,27 @@ function takeSQSmessage!(env::AWSEnv, qurl::AbstractString="")
 
     msg = fetchSQSmessage(env, qurl)
     # delete the message in queue
-    resp = DeleteMessage(env, queueUrl=qurl, receiptHandle=msg.receiptHandle)
-    # resp = DeleteMessage(env, msg)
+    deleteSQSmessage!(env, msg, qurl)
+    return msg
+end
+
+"""
+delete SQS message
+"""
+function deleteSQSmessage!(env::AWSEnv, msghandle::AbstractString, qurl::AbstractString)
+    if !contains(qurl, "https://sqs.")
+        qurl = get_qurl(env, qurl)
+    end
+    resp = DeleteMessage(env, queueUrl=qurl, receiptHandle=msghandle)
     if resp.http_code < 299
         println("message deleted")
     else
         println("message taking failed!")
     end
-    return msg
 end
-
+function deleteSQSmessage!(env::AWSEnv, msg::AWS.SQS.MessageType, qurl::AbstractString="")
+    deleteSQSmessage!(env, msg.receiptHandle, qurl)
+end
 
 """
 put a task to SQS queue

@@ -67,7 +67,7 @@ function save(fimg::AbstractString, img::Timg, dname::AbstractString="img")
         rm(fimg)
     end
     f = h5open(fimg, "w")
-    f[dname,"chunk", (8,8), "shuffle", (), "deflate", 3] = img
+    f[dname,"chunk", (8,8,2), "shuffle", (), "deflate", 3] = img
     close(f)
 end
 
@@ -161,7 +161,7 @@ function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
         rm(fseg)
     end
     f = h5open(fseg, "w")
-    f[dname,"chunk", (8,8), "shuffle", (), "deflate", 3] = seg
+    f[dname,"chunk", (8,8,2), "shuffle", (), "deflate", 3] = seg
     close(f)
 end
 
@@ -192,7 +192,7 @@ function save(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
         rm(faff)
     end
     f = h5open(faff, "w")
-    f[dname,"chunk", (8,8), "shuffle", (), "deflate", 3] = aff
+    f[dname,"chunk", (8,8,2,3), "shuffle", (), "deflate", 3] = aff
     close(f)
 end
 

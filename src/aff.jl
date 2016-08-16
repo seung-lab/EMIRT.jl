@@ -27,6 +27,7 @@ function exchangeaffxz!(aff::Taff)
     taffx = deepcopy(aff[:,:,:,1])
     aff[:,:,:,1] = deepcopy(aff[:,:,:,3])
     aff[:,:,:,3] = taffx
+    #aff[:,:,:,1], aff[:,:,:,3] = aff[:,:,:,3], aff[:,:,:,1]
     return aff
 end
 
