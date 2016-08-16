@@ -10,17 +10,18 @@ dstFile = ARGS[2]
 
 
 # read images
-aff = zeros(Float32, (2000,2000,100,3))
+aff = zeros(Float32, (1600,1600,107,3))
 
 lst_fname = readdir(srcDir)
 
 for c in 1:3
-    for z in 2:101
+    for z in 1:107
 	info("section $z")
-	fname = joinpath(srcDir, "c$(format(c-1, width=5, zeropadding=true))_z$(format(z-1, width=5, zeropadding=true))_y20000_x17000.tiff")
+	#fname = joinpath(srcDir, "c$(format(c-1, width=5, zeropadding=true))_z$(format(z-1, width=5, zeropadding=true))_y20000_x17000.tiff")
+        fname = joinpath(srcDir, "c$(format(c-1, width=1, zeropadding=true))_z$(format(z-1, width=5, zeropadding=true)).tiff")
         aff2d = Array{Float32,2}( load(fname).data )
         # transpose the image for tif loading
-        aff2d = permutedims(aff2d, [2,1])
+        #aff2d = permutedims(aff2d, [2,1])
         # also swap the x and y channel
         aff[:,:,z,c] = aff2d
     end

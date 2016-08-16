@@ -1,4 +1,4 @@
-export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!
+export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!, seg2sgm, segid1N!
 
 include("domains.jl")
 
@@ -349,4 +349,17 @@ function seg_overlay_img(img, seg, alpha1=0.5, alpha2=0.5)
         end
     end
     return ret
+end
+
+"""
+transform segmentation to sgm by making fake mst
+"""
+function seg2sgm(seg::Tseg)
+    # making fake mst
+    dend = zeros(UInt32, (1,2))
+    dend[1] = seg[1]
+    dend[2] = seg[end]
+    dendValues = Vector{Float32}( [0.001] )
+
+    return Tsgm(seg, dend, dendValues)
 end
