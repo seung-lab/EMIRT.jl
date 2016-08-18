@@ -1,8 +1,19 @@
-export markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!, seg2sgm, segid1N!
+export seg2aff, markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb!, seg_overlay_img!, seg2sgm, segid1N!
 
 include("domains.jl")
 
 include("types.jl")
+
+"""
+construct affinity map from segmentation
+"""
+function seg2aff(seg::Tseg)
+  aff = zeros(Float32, (size(seg)..., 3))
+  aff[2:end, :,:,1] = (seg[2:end, :,:] .== seg[1:end-1, :,:])
+  aff[:, 2:end,:,2] = (seg[:, 2:end,:] .== seg[:, 1:end-1,:])
+  aff[:,:, 2:end,3] = (seg[:,:, 2:end] .== seg[:,:, 1:end-1])
+  aff
+end
 
 # label all the singletones as boundary
 function markbdr!( seg::Tseg )
