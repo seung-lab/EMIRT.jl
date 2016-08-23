@@ -2,13 +2,13 @@
 using EMIRT
 
 # get test data
-affs = imread("../assets/affs.h5")
+aff = imread("../assets/aff.h5")
 lbl = imread("../assets/lbl.h5")
 
 lbl = Array{UInt32,3}(lbl)
 
 # compare python code and julia
-seg = aff2seg(affs)
+seg = aff2seg(aff)
 judec = segerror(seg, lbl)
 @show judec
 
