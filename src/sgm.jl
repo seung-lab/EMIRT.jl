@@ -6,20 +6,15 @@ export merge, merge!, segment, segment!, sgm2error, sgm2ec
 """
 merge supervoxels with high affinity
 """
-function merge!(sgm::Tsgm, thd::AbstractFloat)
+function Base.merge!(sgm::Tsgm, thd::AbstractFloat)
     # the dict of parent and child
     # key->child, value->parent
     pd = Dict{UInt32,UInt32}()
-    dend = Array{UInt32,2}([])
-    dendValues = Vector{Float32}([])
+    idxlst = Vector{Int64}()
     for idx in 1:length(sgm.dendValues)
         if sgm.dendValues[idx] > thd
             # the first one is child, the second one is parent
             pd[sgm.dend[idx,1]] = sgm.dend[idx,2]
-        else
-          # keep dendrogram upon threshold in the new dendrogam
-          push!(dendValues, sgm.dendValues[idx])
-          push!(dend, sgm.dend[idx,:])
         end
     end
 
@@ -44,13 +39,14 @@ function merge!(sgm::Tsgm, thd::AbstractFloat)
         sgm.seg[i] = get(pd, sgm.seg[i], sgm.seg[i])
     end
 
-    # new dendrogram
-    sgm.dend = dend
-    sgm.dendValues = dendValues
+    # update the dendrogram
+    sgm.dendValues = sgm.dendValues[idxlst]
+    sgm.dend = sgm.dend[:, idxlst]
+
     return sgm
 end
 
-function merge(sgm::Tsgm, thd::AbstractFloat)
+function Base.merge(sgm::Tsgm, thd::AbstractFloat)
   sgm2 = deepcopy(sgm)
   return merge!(sgm2, thd)
 end
