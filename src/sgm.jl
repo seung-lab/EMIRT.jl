@@ -1,19 +1,25 @@
 include("types.jl")
 include("errorcurve.jl")
 
-export segment, sgm2error, sgm2ec
+export merge, merge!, segment, segment!, sgm2error, sgm2ec
 
 """
-get the segment with a threshold
+merge supervoxels with high affinity
 """
-function segment(sgm::Tsgm, thd::AbstractFloat)
+function merge!(sgm::Tsgm, thd::AbstractFloat)
     # the dict of parent and child
     # key->child, value->parent
     pd = Dict{UInt32,UInt32}()
+    dend = Array{UInt32,2}([])
+    dendValues = Vector{Float32}([])
     for idx in 1:length(sgm.dendValues)
         if sgm.dendValues[idx] > thd
             # the first one is child, the second one is parent
             pd[sgm.dend[idx,1]] = sgm.dend[idx,2]
+        else
+          # keep dendrogram upon threshold in the new dendrogam
+          push!(dendValues, sgm.dendValues[idx])
+          push!(dend, sgm.dend[idx,:])
         end
     end
 
@@ -34,11 +40,32 @@ function segment(sgm::Tsgm, thd::AbstractFloat)
     end
 
     # set each segment id as root id
-    ret = deepcopy(sgm.seg)
-    for i in eachindex(ret)
-        ret[i] = get(pd, ret[i], ret[i])
+    for i in eachindex(sgm.seg)
+        sgm.seg[i] = get(pd, sgm.seg[i], sgm.seg[i])
     end
-    return ret
+
+    # new dendrogram
+    sgm.dend = dend
+    sgm.dendValues = dendValues
+    return sgm
+end
+
+function merge(sgm::Tsgm, thd::AbstractFloat)
+  sgm2 = deepcopy(sgm)
+  return merge!(sgm2, thd)
+end
+
+"""
+segment the sgm, only return segmentation
+"""
+function segment(sgm::Tsgm, thd::AbstractFloat)
+  sgm2 = segment(sgm, thd)
+  return sgm2.seg
+end
+
+function segment!(sgm::Tsgm, thd::AbstractFloat)
+  sgm = segment!(sgm, thd)
+  return sgm.seg
 end
 
 """

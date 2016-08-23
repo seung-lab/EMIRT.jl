@@ -17,7 +17,7 @@ typealias Tdend Array{UInt32,2}
 
 typealias TdendValues Vector{Float32}
 
-immutable Tsgm
+type Tsgm
     seg::Tseg
     dend::Tdend
     dendValues::TdendValues
