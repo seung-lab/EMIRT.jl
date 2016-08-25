@@ -1,3 +1,4 @@
+info("----------test sgm-------------")
 using EMIRT
 using Watershed
 
@@ -12,6 +13,6 @@ sgm = Tsgm(seg, dend, dendValues)
 merge!(sgm, 0.5);
 
 
-include(joinpath(Pkg.dir(), "EMIRT/plugins/emshow.jl"))
-show(sgm.seg)
+# include(joinpath(Pkg.dir(), "EMIRT/plugins/emshow.jl"))
+# show(sgm.seg)
 #save(joinpath(dirname(@__FILE__),"../assets/sgm.h5", sgm)

@@ -2,6 +2,13 @@ include("types.jl")
 include("errorcurve.jl")
 
 export merge, merge!, segment, segment!, sgm2error, sgm2ec
+#
+# """
+# equality
+# """
+# function Base.is(sgm1::Tsgm, sgm2::Tsgm)
+#   sgm1.seg==sgm2.seg && sgm1.dend==sgm2.dend && sgm1.dendValues==sgm2.dendValues
+# end
 
 """
 merge supervoxels with high affinity

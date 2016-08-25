@@ -42,9 +42,11 @@ function readimg(fimg::AbstractString)
     if ishdf5(fimg)
         f = h5open(fimg)
         if has(f, "img")
-            img = read(f["img"])
+          img = read(f["img"])
+        elseif has(f, "image")
+          img = read(f["image"])
         else
-            img = read(f["main"])
+          img = read(f["main"])
         end
         close(f)
     else
@@ -62,7 +64,7 @@ end
 """
 save raw image
 """
-function save(fimg::AbstractString, img::Timg, dname::AbstractString="img")
+function save(fimg::AbstractString, img::Timg, dname::AbstractString="image")
     if isfile(fimg)
         rm(fimg)
     end
@@ -71,7 +73,7 @@ function save(fimg::AbstractString, img::Timg, dname::AbstractString="img")
     close(f)
 end
 
-function saveimg(fimg::AbstractString, img::Timg, dname::AbstractString="img")
+function saveimg(fimg::AbstractString, img::Timg, dname::AbstractString="image")
     save(fimg, img, dname)
 end
 
@@ -129,10 +131,12 @@ function readseg(fseg::AbstractString)
     elseif ishdf5(fseg)
         f = h5open(fseg)
         if has(f, "seg")
-            seg = read(f["seg"])
+          seg = read(f["seg"])
+        elseif has(f, "segmentation")
+          seg = read(f["segmentation"])
         else
-            @assert has(f, "main")
-            seg = read(f["main"])
+          @assert has(f, "main")
+          seg = read(f["main"])
         end
         close(f)
     elseif contains(fseg, ".tif")
@@ -156,7 +160,7 @@ end
 
 """
 """
-function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
+function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="segmentation")
     if isfile(fseg)
         rm(fseg)
     end
@@ -165,7 +169,7 @@ function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
     close(f)
 end
 
-function saveseg(fseg::AbstractString, seg::Tseg, dname::AbstractString="seg")
+function saveseg(fseg::AbstractString, seg::Tseg, dname::AbstractString="segmentation")
     save(fseg,seg, dname)
 end
 
@@ -175,10 +179,12 @@ read affinity map
 function readaff(faff::AbstractString)
     f = h5open(faff)
     if has(f, "aff")
-        aff = read(f["aff"])
+      aff = read(f["aff"])
+    elseif has(f, "affinityMap")
+      aff = read(f["affinityMap"])
     else
-        @assert has(f, "main")
-        aff = read(f["main"])
+      @assert has(f, "main")
+      aff = read(f["main"])
     end
     close(f)
     return Taff(aff)
@@ -187,7 +193,7 @@ end
 """
 save affinity map
 """
-function save(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
+function save(faff::AbstractString, aff::Taff, dname::AbstractString="affinityMap")
     if isfile(faff)
         rm(faff)
     end
@@ -196,7 +202,7 @@ function save(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
     close(f)
 end
 
-function saveaff(faff::AbstractString, aff::Taff, dname::AbstractString="aff")
+function saveaff(faff::AbstractString, aff::Taff, dname::AbstractString="affinityMap")
     save(faff, aff, dname)
 end
 
@@ -209,11 +215,12 @@ function issgmfile(fname::AbstractString)
         return false
     else
         f = h5open(fname)
-        if has(f, "dend")
+        if has(f, "dend") || has(f, "segmentPair")
             return true
         else
             return false
         end
+        close(f)
     end
 end
 
@@ -223,14 +230,21 @@ read segmentation with maximum spanning tree
 function readsgm(fname::AbstractString)
     f = h5open(fname)
     if has(f, "seg")
-        seg = read(f["seg"])
+      seg = read(f["seg"])
+      dend = read(f["dend"])
+      dendValues = read(f["dendValues"])
+    elseif has(f, "segmentation")
+      seg = read(f["segmentation"])
+      dend = read(f["segmentPair"])
+      dendValues = read(f["segmentAffinity"])
     else
-        @assert has(f, "main")
-        seg = read(f["main"])
+      @assert has(f, "main")
+      seg = read(f["main"])
+      dend = read(f["dend"])
+      dendValues = read(f["dendValues"])
     end
-    dend = read(f["dend"])
-    dendValues = read(f["dendValues"])
-    Tsgm(seg, dend, dendValues)
+    close(f)
+    return Tsgm(seg, dend, dendValues)
 end
 
 """
@@ -238,9 +252,9 @@ save segmentation with dendrogram
 """
 function save(fsgm::AbstractString, sgm::Tsgm)
     f = h5open(fsgm, "w")
-    f["main"] = sgm.seg
-    f["dend"] = sgm.dend
-    f["dendValues"] = sgm.dendValues
+    f["segmentation"] = sgm.seg
+    f["segmentPair"] = sgm.dend
+    f["segmentAffinity"] = sgm.dendValues
     close(f)
 end
 function save(fsgm::AbstractString, seg::Tseg, dend::Tdend, dendValues::TdendValues)
@@ -254,10 +268,10 @@ end
 """
 read the error curve
 """
-function readec(fname::AbstractString, tag::AbstractString="ec")
+function readec(fname::AbstractString, tag::AbstractString="scores")
     ec = Tec()
     f = h5open(fname)
-    f = f["/errorcurve/$tag"]
+    f = f["/evaluation/$tag"]
     ec = readec(f)
     close(f)
     return ec
@@ -274,12 +288,12 @@ end
 """
 save the error curve
 """
-function save(fname::AbstractString, ec::Tec, tag::AbstractString="ec")
+function save(fname::AbstractString, ec::Tec, tag::AbstractString="scores")
     for (k,v) in ec
-        h5write(fname, "/errorcurve/$tag/$k", v)
+      h5write(fname, "/evaluation/$tag/$k", v)
     end
 end
-function saveec(fec::AbstractString, ec::Tec, tag::AbstractString="ec")
+function saveec(fec::AbstractString, ec::Tec, tag::AbstractString="scores")
     save(fec, ec, tag)
 end
 
@@ -289,7 +303,7 @@ read multiple error curves
 function readecs(fname::AbstractString)
     ret = Tecs()
     f = h5open(fname)
-    f = f["errorcurve"]
+    f = f["evaluation"]
     for tag in names(f)
         ret[tag] = readec(f[tag])
     end
