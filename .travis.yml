@@ -8,8 +8,8 @@ notifications:
 
 install:
         - julia -e 'Pkg.add("HDF5"); Pkg.add("FileIO")'
-        - julia -e 'Pkg.checkout("https://github.com/seung-lab/EMIRT.jl.git")'
-        - julia -e 'Pkg.add("Watershed"); Pkg.checkout("Watershed")'
+        - julia -e 'Pkg.clone("https://github.com/seung-lab/EMIRT.jl.git")'
+        - julia -e 'Pkg.clone("https://github.com/seung-lab/Watershed.jl.git")'
 
 script:
         - julia -e 'Pkg.test("EMIRT")'
