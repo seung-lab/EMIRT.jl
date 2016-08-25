@@ -7,7 +7,7 @@ notifications:
         email: false
 
 install:
-        - julia -e 'Pkg.add("HDF5")'
+        - julia -e 'Pkg.add("HDF5"); Pkg.add("FileIO")'
         - julia -e 'Pkg.add("EMIRT")'
         - julia -e 'Pkg.checkout("EMIRT")'
         - julia -e 'Pkg.add("Watershed"); Pkg.checkout("Watershed")'
