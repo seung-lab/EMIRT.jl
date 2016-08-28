@@ -4,12 +4,12 @@ using EMIRT
 """
 transform error curve to dataframe
 """
-function ec2df(ec::Tec, tag::Symbol=:ec)
+function ec2df(ec::Tec, ecname::Symbol=:ecname)
     df = DataFrame()
     for (k,v) in ec
         df[k] = v
     end
-    df[tag] = tag
+    df[:tag] = ecname
     return df
 end
 
@@ -18,11 +18,13 @@ transfer error curves to dataframe
 """
 function ecs2df(ecs::Tecs)
     df = DataFrame()
-    for (tag,ec) in ecs
+    for (ecname,ec) in ecs
         if isempty(df)
-            df = ec2df(ec,tag)
+            df = ec2df(ec, ecname)
         else
-            df = join(df, ec2df(ec, tag), on=:tag)
+          metrics = collect(keys(first(values(ecs))))
+          @show metrics
+          df = join(df, ec2df(ec, ecname), on=metrics, kind=:outer)
         end
     end
     return df

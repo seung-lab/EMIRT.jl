@@ -43,17 +43,17 @@ end
 """
 append an error curve
 """
-function append!(ecs::Tecs, key::Symbol, value::Float32, tag::Symbol=:ec)
+function append!(ecs::Tecs, key::Symbol, value::Float32; tag::Symbol=:ec)
     append!(ecs[tag], key, value)
     ecs
 end
 
-function append!(ecs::Tecs, err::Dict{Symbol, Float32}, tag::Symbol=:ec)
+function append!(ecs::Tecs, err::Dict{Symbol, Float32}; tag::Symbol=:ec)
     append!(ecs[tag], err)
     ecs
 end
 
-function append!(ecs::Tecs, ec::Tec, tag::Symbol=:ec)
+function append!(ecs::Tecs, ec::Tec; tag::Symbol=:ec)
     k1 = tag
     if haskey(ecs, k1)
         for (k2,v2) in ec

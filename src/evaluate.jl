@@ -1,16 +1,16 @@
 using HDF5
 using Watershed
 
-export segerror, patch_segerror
+export evaluate, evaluate_by_patch
 
-include("aff.jl")
-include("seg.jl")
+include("affinitymap.jl")
+include("segmentation.jl")
 include("domains.jl")
 
 # use a log version which is faster and more accurate
 import Base.Math.JuliaLibm.log
 
-function segerror(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=true)
+function evaluate(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=true)
     ret = Dict{Symbol, Float32}()
     # overlap matrix reprisented by dict
     om = Dict{Tuple{UInt32,UInt32},Float32}()
@@ -129,7 +129,7 @@ patch-based segmentation error
 `rfm`: rand f score of mergers
 `rfs`: rand f score of splitters
 """
-function patch_segerror(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
+function evaluate_by_patch(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
     @assert size(seg_in)==size(lbl_in)
     # @assert Tuple(ptsz) < size(seg)
 
