@@ -252,7 +252,7 @@ save segmentation with segmentPairsrogram
 """
 function save(fsgm::AbstractString, sgm::SegMST)
     f = h5open(fsgm, "w")
-    f["segmentation"] = sgm.seg
+    f["segmentation"] = sgm.segmentation
     f["segmentPairs"] = sgm.segmentPairs
     f["segmentPairAffinities"] = sgm.segmentPairAffinities
     close(f)

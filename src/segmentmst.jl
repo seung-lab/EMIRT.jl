@@ -8,7 +8,7 @@ export merge, merge!, segment, segment!, sgm2error, sgm2ec
 # equality
 # """
 # function Base.is(sgm1::SegMST, sgm2::SegMST)
-#   sgm1.seg==sgm2.seg && sgm1.segmentPairs==sgm2.segmentPairs && sgm1.segmentPairAffinities==sgm2.segmentPairAffinities
+#   sgm1.segmentation==sgm2.segmentation && sgm1.segmentPairs==sgm2.segmentPairs && sgm1.segmentPairAffinities==sgm2.segmentPairAffinities
 # end
 
 """
@@ -43,8 +43,8 @@ function Base.merge!(sgm::SegMST, thd::AbstractFloat)
     end
 
     # set each segment id as root id
-    for i in eachindex(sgm.seg)
-        sgm.seg[i] = get(pd, sgm.seg[i], sgm.seg[i])
+    for i in eachindex(sgm.segmentation)
+        sgm.segmentation[i] = get(pd, sgm.segmentation[i], sgm.segmentation[i])
     end
 
     # update the segmentPairsrogram
@@ -64,12 +64,12 @@ segment the sgm, only return segmentation
 """
 function segment(sgm::SegMST, thd::AbstractFloat)
   sgm2 = merge(sgm, thd)
-  return sgm2.seg
+  return sgm2.segmentation
 end
 
 function segment!(sgm::SegMST, thd::AbstractFloat)
   sgm = merge!(sgm, thd)
-  return sgm.seg
+  return sgm.segmentation
 end
 
 """

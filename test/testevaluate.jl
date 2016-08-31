@@ -10,15 +10,15 @@ lbl = Array{UInt32,3}(lbl)
 
 # compare python code and julia
 seg = aff2seg(aff)
-judec = segerror(seg, lbl)
+judec = evaluate(seg, lbl)
 @show judec
 
 # dict of evaluation curve
-@time ecd = segerror(lbl,lbl)
+@time ecd = evaluate(lbl,lbl)
 @show ecd
 @assert abs(ecd[:rf]-1) < 0.01
 
 seg = Array{UInt32,3}(reshape(range(1,length(lbl)), size(lbl)))
-@time ecd = segerror(seg,lbl)
+@time ecd = evaluate(seg,lbl)
 @show ecd
 @assert abs(ecd[:rf]-0) < 0.01
