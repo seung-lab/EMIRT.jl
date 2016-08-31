@@ -23,6 +23,6 @@ sgm2 = readsgm("/tmp/sgm.h5")
 # Note! we can only compare by internal field
 # julia == function only compare the memory address for mutable objects.
 # see https://github.com/JuliaLang/julia/issues/5340
-@assert sgm2.seg == sgm.seg
+@assert sgm2.segmentation == sgm.segmentation
 @assert sgm2.segmentPairs == sgm.segmentPairs
 @assert sgm2.segmentPairAffinities == sgm.segmentPairAffinities
