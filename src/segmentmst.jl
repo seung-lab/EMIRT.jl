@@ -7,22 +7,22 @@ export merge, merge!, segment, segment!, sgm2error, sgm2ec
 # """
 # equality
 # """
-# function Base.is(sgm1::Tsgm, sgm2::Tsgm)
-#   sgm1.seg==sgm2.seg && sgm1.dend==sgm2.dend && sgm1.dendValues==sgm2.dendValues
+# function Base.is(sgm1::SegMST, sgm2::SegMST)
+#   sgm1.seg==sgm2.seg && sgm1.segmentPairs==sgm2.segmentPairs && sgm1.segmentPairAffinities==sgm2.segmentPairAffinities
 # end
 
 """
 merge supervoxels with high affinity
 """
-function Base.merge!(sgm::Tsgm, thd::AbstractFloat)
+function Base.merge!(sgm::SegMST, thd::AbstractFloat)
     # the dict of parent and child
     # key->child, value->parent
     pd = Dict{UInt32,UInt32}()
     idxlst = Vector{Int64}()
-    for idx in 1:length(sgm.dendValues)
-        if sgm.dendValues[idx] > thd
+    for idx in 1:length(sgm.segmentPairAffinities)
+        if sgm.segmentPairAffinities[idx] > thd
             # the first one is child, the second one is parent
-            pd[sgm.dend[idx,1]] = sgm.dend[idx,2]
+            pd[sgm.segmentPairs[idx,1]] = sgm.segmentPairs[idx,2]
         end
     end
 
@@ -47,14 +47,14 @@ function Base.merge!(sgm::Tsgm, thd::AbstractFloat)
         sgm.seg[i] = get(pd, sgm.seg[i], sgm.seg[i])
     end
 
-    # update the dendrogram
-    sgm.dendValues = sgm.dendValues[idxlst]
-    sgm.dend = sgm.dend[:, idxlst]
+    # update the segmentPairsrogram
+    sgm.segmentPairAffinities = sgm.segmentPairAffinities[idxlst]
+    sgm.segmentPairs = sgm.segmentPairs[:, idxlst]
 
     return sgm
 end
 
-function Base.merge(sgm::Tsgm, thd::AbstractFloat)
+function Base.merge(sgm::SegMST, thd::AbstractFloat)
   sgm2 = deepcopy(sgm)
   return merge!(sgm2, thd)
 end
@@ -62,12 +62,12 @@ end
 """
 segment the sgm, only return segmentation
 """
-function segment(sgm::Tsgm, thd::AbstractFloat)
+function segment(sgm::SegMST, thd::AbstractFloat)
   sgm2 = merge(sgm, thd)
   return sgm2.seg
 end
 
-function segment!(sgm::Tsgm, thd::AbstractFloat)
+function segment!(sgm::SegMST, thd::AbstractFloat)
   sgm = merge!(sgm, thd)
   return sgm.seg
 end
@@ -75,17 +75,17 @@ end
 """
 compute segmentation error using one threshold
 """
-function sgm2error(sgm::Tsgm, lbl::Tseg, thd::AbstractFloat)
+function sgm2error(sgm::SegMST, lbl::Segmentation, thd::AbstractFloat)
     @assert thd<=1 && thd>=0
     seg = segment(sgm, thd)
     return evaluate(seg, lbl)
 end
 
 """
-compute error curve based on a segmentation (including dendrogram) and groundtruth label
+compute error curve based on a segmentation (including segmentPairsrogram) and groundtruth label
 """
-function sgm2ec(sgm::Tsgm, lbl::Tseg, thds = 0:0.1:1)
-    ec = Tec()
+function sgm2ec(sgm::SegMST, lbl::Segmentation, thds = 0:0.1:1)
+    ec = ScoreCurve()
     for thd in thds
         e = sgm2error(sgm, lbl, thd)
         e[:thd] = thd

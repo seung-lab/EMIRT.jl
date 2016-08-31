@@ -2,7 +2,7 @@ include("types.jl")
 
 export normalize
 
-function normalize( img::Timg )
+function normalize( img::EMImage )
     sx,sy,sz = size(img)
     I   = zeros(Float32, (sx,sy))
     ret = zeros(Float32, (sx,sy,sz))

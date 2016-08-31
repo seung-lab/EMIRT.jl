@@ -5,7 +5,7 @@ import Base: append!, fetch, take!
 """
 append to error curve
 """
-function append!(ec::Tec, key::Symbol, value::Float32)
+function append!(ec::ScoreCurve, key::Symbol, value::Float32)
     if haskey(ec,key)
         ec[key] = push!(ec[key], value)
     else
@@ -14,7 +14,7 @@ function append!(ec::Tec, key::Symbol, value::Float32)
     ec
 end
 
-function append!(ec::Tec, thd::Float32, rf::Float32, rfm::Float32,
+function append!(ec::ScoreCurve, thd::Float32, rf::Float32, rfm::Float32,
                rfs::Float32, re::Float32, rem::Float32, res::Float32)
     append!(ec, :thd, thd)
     append!(ec, :rf,  rf)
@@ -26,13 +26,13 @@ function append!(ec::Tec, thd::Float32, rf::Float32, rfm::Float32,
     ec
 end
 
-function append!(ec::Tec, thd::Float32, err::Dict{Symbol, Float32})
+function append!(ec::ScoreCurve, thd::Float32, err::Dict{Symbol, Float32})
     @assert !haskey(err, :thd)
     append!(ec, :thd, thd)
     append!(ec, err)
 end
 
-function append!(ec::Tec, err::Dict{Symbol, Float32})
+function append!(ec::ScoreCurve, err::Dict{Symbol, Float32})
     for (k,v) in err
         append!(ec, k, v)
     end
@@ -43,17 +43,17 @@ end
 """
 append an error curve
 """
-function append!(ecs::Tecs, key::Symbol, value::Float32; tag::Symbol=:ec)
+function append!(ecs::ScoreCurves, key::Symbol, value::Float32; tag::Symbol=:ec)
     append!(ecs[tag], key, value)
     ecs
 end
 
-function append!(ecs::Tecs, err::Dict{Symbol, Float32}; tag::Symbol=:ec)
+function append!(ecs::ScoreCurves, err::Dict{Symbol, Float32}; tag::Symbol=:ec)
     append!(ecs[tag], err)
     ecs
 end
 
-function append!(ecs::Tecs, ec::Tec; tag::Symbol=:ec)
+function append!(ecs::ScoreCurves, ec::ScoreCurve; tag::Symbol=:ec)
     k1 = tag
     if haskey(ecs, k1)
         for (k2,v2) in ec
@@ -69,14 +69,14 @@ end
 """
 fetch an error curve
 """
-function fetch(ecs::Tecs, tag::Symbol=:ec)
+function fetch(ecs::ScoreCurves, tag::Symbol=:ec)
     return ecs[tag]
 end
 
 """
 take an error curve
 """
-function take!(ecs::Tecs, tag::Symbol=:ec)
+function take!(ecs::ScoreCurves, tag::Symbol=:ec)
     ec = ecs[tag]
     delete!(ecs, tag)
     return ec

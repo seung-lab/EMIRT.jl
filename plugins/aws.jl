@@ -2,7 +2,6 @@ using EMIRT
 using AWS
 using AWS.SQS
 using AWS.S3
-export build_env, iss3, s3_list_objects, fetchSQSmessage, takeSQSmessage!, deleteSQSmessage, sendSQSmessage
 
 """
 build aws envariament

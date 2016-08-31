@@ -16,7 +16,7 @@ end
 
 ec = sgm2ec(sgm, lbl)
 
-ecs = Tecs()
+ecs = ScoreCurves()
 ecs[:ec] = ec
 df = ecs2df(ecs)
 

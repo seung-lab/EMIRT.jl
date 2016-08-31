@@ -7,7 +7,7 @@ include("types.jl")
 """
 construct affinity map from segmentation
 """
-function seg2aff(seg::Tseg)
+function seg2aff(seg::Segmentation)
   aff = zeros(Float32, (size(seg)..., 3))
   aff[2:end, :,:,1] = (seg[2:end, :,:] .== seg[1:end-1, :,:])
   aff[:, 2:end,:,2] = (seg[:, 2:end,:] .== seg[:, 1:end-1,:])
@@ -16,7 +16,7 @@ function seg2aff(seg::Tseg)
 end
 
 # label all the singletones as boundary
-function markbdr!( seg::Tseg )
+function markbdr!( seg::Segmentation )
 
     # a flag array indicating whether it is segment
     flg = falses(seg)
@@ -70,7 +70,7 @@ end
 # relabel the segment according to connectivity
 # where N is the total number of segments
 # Note that this is different from relabel1N in segerror package, which relabeles in 2D and labeled the segment ID to 1-N, where N is the total number of segments.
-function relabel_seg( lbl::Tseg, dim=3 )
+function relabel_seg( lbl::Segmentation, dim=3 )
     @assert dim==2 || dim==3
     N = length(lbl)
     X,Y,Z = size(lbl)
@@ -139,7 +139,7 @@ end
 
 
 # reassign segment ID as 1-N
-function segid1N!( lbl::Tseg )
+function segid1N!( lbl::Segmentation )
     # dictionary of ids
     did = Dict()
     did[0] = 0
@@ -238,7 +238,7 @@ seg: a segmentation or label of image volume
 Outputs:
 dms: domains for fast union-find algorithm defined in "domains.jl"
 """
-function seg2dms(seg::Tseg, is_merge = true)
+function seg2dms(seg::Segmentation, is_merge = true)
     # initialize a domain as singletons
     @assert ndims(seg)==2 || ndims(seg)==3
     dms = Tdomains( length(seg) )
@@ -290,7 +290,7 @@ seg: segmentation, an indexed array
 Outputs:
 ret: rgb image array with a size of X x Y x Z x 3, the color dim is the last one
 """
-function seg2rgb(seg::Tseg)
+function seg2rgb(seg::Segmentation)
     # the color dict, key is segment id, value is color
     dcol = Dict{UInt32, Vector{Float32}}()
     # set the boundary color to be black
@@ -336,7 +336,7 @@ function seg_overlay_img(img, seg, alpha1=0.5, alpha2=0.5)
     ret = zeros(Float32,(sx,sy,sz,3))
 
     # colorful segmentation image
-    cseg = seg2rgb(Tseg(seg))
+    cseg = seg2rgb(Segmentation(seg))
 
     # transform img to 0-1
     fimg = Array{Float32,3}(img)
@@ -365,12 +365,12 @@ end
 """
 transform segmentation to sgm by making fake mst
 """
-function seg2sgm(seg::Tseg)
+function seg2sgm(seg::Segmentation)
     # making fake mst
-    dend = zeros(UInt32, (1,2))
-    dend[1] = seg[1]
-    dend[2] = seg[end]
-    dendValues = Vector{Float32}( [0.001] )
+    segmentPairs = zeros(UInt32, (1,2))
+    segmentPairs[1] = seg[1]
+    segmentPairs[2] = seg[end]
+    segmentPairAffinities = Vector{Float32}( [0.001] )
 
-    return Tsgm(seg, dend, dendValues)
+    return SegMST(seg, segmentPairs, segmentPairAffinities)
 end

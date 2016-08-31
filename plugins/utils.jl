@@ -4,7 +4,7 @@ using EMIRT
 """
 transform error curve to dataframe
 """
-function ec2df(ec::Tec, ecname::Symbol=:ecname)
+function ec2df(ec::ScoreCurve, ecname::Symbol=:ecname)
     df = DataFrame()
     for (k,v) in ec
         df[k] = v
@@ -16,7 +16,7 @@ end
 """
 transfer error curves to dataframe
 """
-function ecs2df(ecs::Tecs)
+function ecs2df(ecs::ScoreCurves)
     df = DataFrame()
     for (ecname,ec) in ecs
         if isempty(df)

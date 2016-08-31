@@ -6,9 +6,9 @@ using Watershed
 aff = readaff("../assets/piriform.aff.h5")
 
 seg, rg = watershed(aff; is_threshold_relative=true);
-dend, dendValues = rg2dend(rg)
+segmentPairs, segmentPairAffinities = rg2segmentPairs(rg)
 
-sgm = Tsgm(seg, dend, dendValues)
+sgm = SegMST(seg, segmentPairs, segmentPairAffinities)
 
 merge!(sgm, 0.5);
 

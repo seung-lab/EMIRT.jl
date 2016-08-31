@@ -22,7 +22,7 @@ function gaff2saff( gaff )
 end
 
 # exchang X and Z channel of affinity
-function exchangeaffxz!(aff::Taff)
+function exchangeaffxz!(aff::AffinityMap)
     println("exchange x and z of affinity map")
     taffx = deepcopy(aff[:,:,:,1])
     aff[:,:,:,1] = deepcopy(aff[:,:,:,3])
@@ -32,7 +32,7 @@ function exchangeaffxz!(aff::Taff)
 end
 
 # transform affinity to segmentation
-function aff2seg( aff::Taff, dim = 3, thd = 0.5 )
+function aff2seg( aff::AffinityMap, dim = 3, thd = 0.5 )
     @assert dim==2 || dim==3
     # note that should be column major affinity map
     # the znn V4 output is row major!!! should exchangeaffxz first!
@@ -130,7 +130,7 @@ function aff2uniform(aff, alg=QuickSort)
     return v
 end
 
-#function aff2uniform!(aff::Taff)
+#function aff2uniform!(aff::AffinityMap)
  #   println("transfer to uniform distribution...")
  #   for z in 1:size(aff,3)
  #       aff[:,:,z,:] = arr2uniform( aff[:,:,z,:] )
@@ -140,7 +140,7 @@ end
 """
 transfer affinity map to edge list
 """
-function aff2edgelist(aff::Taff, is_sort=true)
+function aff2edgelist(aff::AffinityMap, is_sort=true)
     # initialize the edge list
     elst = Array{Tuple{Float32,UInt32,UInt32},1}([])
     # get the sizes

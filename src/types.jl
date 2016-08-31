@@ -1,29 +1,39 @@
 
-export Timg, Tseg, Taff, Tpd, Tsgm, Tdend, TdendValues, Tec, Tecs
+export EMImage, Segmentation, AffinityMap, ParamDict, SegMST, SegmentPairs, SegmentPairAffinities, ScoreCurve, ScoreCurves
+export Timg, Tseg, Tsgm, Tec, Tecs
 
 # type of raw image
-typealias Timg Array{UInt8,3}
+typealias EMImage Array{UInt8,3}
 
 # type of segmentation
-typealias Tseg Array{UInt32,3}
+typealias Segmentation Array{UInt32,3}
 
 # type of affinity map
-typealias Taff Array{Float32,4}
+typealias AffinityMap Array{Float32,4}
 
 # type of parameter dictionary
-typealias Tpd Dict{Symbol, Dict{Symbol, Any}}
+typealias ParamDict Dict{Symbol, Dict{Symbol, Any}}
 
-typealias Tdend Array{UInt32,2}
+typealias SegmentPairs Array{UInt32,2}
 
-typealias TdendValues Vector{Float32}
+typealias SegmentPairAffinities Vector{Float32}
 
-type Tsgm
-    seg::Tseg
-    dend::Tdend
-    dendValues::TdendValues
+type SegMST
+    segmentation::Segmentation
+    segmentPairs::SegmentPairs
+    segmentPairAffinities::SegmentPairAffinities
 end
 
-# error curve
-typealias Tec Dict{Symbol, Vector{Float32}}
-# error curves
-typealias Tecs Dict{Symbol, Tec}
+# score curve
+typealias ScoreCurve Dict{Symbol, Vector{Float32}}
+# score curves
+typealias ScoreCurves Dict{Symbol, ScoreCurve}
+
+
+# defined for backward compatibility
+typealias Timg  EMImage
+typealias Tseg  Segmentation
+typealias Taff  AffinityMap
+typealias Tsgm  SegMST
+typealias Tec   ScoreCurve
+typealias Tecs  ScoreCurves

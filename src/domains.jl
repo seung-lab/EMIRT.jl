@@ -121,7 +121,7 @@ type Tdomains
 end
 
 # constructor function
-function Tdomains(lbl::Tseg)
+function Tdomains(lbl::Segmentation)
     # number of voxels
     N = length(lbl)
     # initialize the disjoint sets

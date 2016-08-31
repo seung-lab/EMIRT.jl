@@ -17,12 +17,12 @@ faffs = Dict{Symbol, AbstractString}(
 flbl = "/usr/people/jingpeng/seungmount/Omni/TracerTasks/ZFishEnsembleValidation/zfish_chunk_33405_8905_229.omni.seg.ben.h5"
 lbl  = readseg(flbl)
 
-ecs = Tecs()
+ecs = ScoreCurves()
 for (name,faff) in faffs
   aff = readaff(faff)
   seg = atomicseg(aff; is_threshold_relative=true)
-  dend, dendValues = Process.forward(aff, seg)
-  sgm = EMIRT.Tsgm(seg, dend, dendValues)
+  segmentPairs, segmentPairAffinities = Process.forward(aff, seg)
+  sgm = EMIRT.SegMST(seg, segmentPairs, segmentPairAffinities)
 
   errorcurve = sgm2ec(sgm, lbl, 0:0.2:1)
   append!(ecs, errorcurve; tag=name)

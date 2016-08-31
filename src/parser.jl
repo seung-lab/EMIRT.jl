@@ -1,7 +1,5 @@
 export autoparse, configparser, argparser!, shareprms!
 
-typealias Tpdconf Dict{Symbol, Dict{Symbol, Any}}
-
 function str2list(s, splitter=";")
     ret = []
     for e in split(s, splitter)
@@ -57,7 +55,7 @@ end
 
 function configparser(lines::Vector)
     # initialize the parameter dictionary
-    pd = Tpdconf()
+    pd = ParamDict()
     # default section name
     sec = :section
     # analysis the lines
@@ -148,7 +146,7 @@ function argparser!(pd::Dict{Symbol, Any}=Dict() )
 end
 
 # share the gneral parameters in each section
-function shareprms!(pd::Tpdconf, gnkey::Symbol=:gn, is_keep=true)
+function shareprms!(pd::ParamDict, gnkey::Symbol=:gn, is_keep=true)
     @assert haskey(pd, gnkey)
     for k1 in keys(pd)
         if k1 != gnkey

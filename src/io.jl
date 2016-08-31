@@ -64,7 +64,7 @@ end
 """
 save raw image
 """
-function save(fimg::AbstractString, img::Timg, dname::AbstractString="image")
+function save(fimg::AbstractString, img::EMImage, dname::AbstractString="image")
     if isfile(fimg)
         rm(fimg)
     end
@@ -73,7 +73,7 @@ function save(fimg::AbstractString, img::Timg, dname::AbstractString="image")
     close(f)
 end
 
-function saveimg(fimg::AbstractString, img::Timg, dname::AbstractString="image")
+function saveimg(fimg::AbstractString, img::EMImage, dname::AbstractString="image")
     save(fimg, img, dname)
 end
 
@@ -155,12 +155,12 @@ function readseg(fseg::AbstractString)
     else
         error("unsupported file format!")
     end
-    return Tseg(seg)
+    return Segmentation(seg)
 end
 
 """
 """
-function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="segmentation")
+function save(fseg::AbstractString, seg::Segmentation, dname::AbstractString="segmentation")
     if isfile(fseg)
         rm(fseg)
     end
@@ -169,7 +169,7 @@ function save(fseg::AbstractString, seg::Tseg, dname::AbstractString="segmentati
     close(f)
 end
 
-function saveseg(fseg::AbstractString, seg::Tseg, dname::AbstractString="segmentation")
+function saveseg(fseg::AbstractString, seg::Segmentation, dname::AbstractString="segmentation")
     save(fseg,seg, dname)
 end
 
@@ -187,13 +187,13 @@ function readaff(faff::AbstractString)
       aff = read(f["main"])
     end
     close(f)
-    return Taff(aff)
+    return AffinityMap(aff)
 end
 
 """
 save affinity map
 """
-function save(faff::AbstractString, aff::Taff, dname::AbstractString="affinityMap")
+function save(faff::AbstractString, aff::AffinityMap, dname::AbstractString="affinityMap")
     if isfile(faff)
         rm(faff)
     end
@@ -202,7 +202,7 @@ function save(faff::AbstractString, aff::Taff, dname::AbstractString="affinityMa
     close(f)
 end
 
-function saveaff(faff::AbstractString, aff::Taff, dname::AbstractString="affinityMap")
+function saveaff(faff::AbstractString, aff::AffinityMap, dname::AbstractString="affinityMap")
     save(faff, aff, dname)
 end
 
@@ -215,7 +215,7 @@ function issgmfile(fname::AbstractString)
         return false
     else
         f = h5open(fname)
-        if has(f, "dend") || has(f, "segmentPair")
+        if has(f, "segmentPairs") || has(f, "segmentPair")
             return true
         else
             return false
@@ -231,34 +231,34 @@ function readsgm(fname::AbstractString)
     f = h5open(fname)
     if has(f, "seg")
       seg = read(f["seg"])
-      dend = read(f["dend"])
-      dendValues = read(f["dendValues"])
+      segmentPairs = read(f["segmentPairs"])
+      segmentPairAffinities = read(f["segmentPairAffinities"])
     elseif has(f, "segmentation")
       seg = read(f["segmentation"])
-      dend = read(f["segmentPair"])
-      dendValues = read(f["segmentAffinity"])
+      segmentPairs = read(f["segmentPairs"])
+      segmentPairAffinities = read(f["segmentPairAffinities"])
     else
       @assert has(f, "main")
       seg = read(f["main"])
-      dend = read(f["dend"])
-      dendValues = read(f["dendValues"])
+      segmentPairs = read(f["segmentPairs"])
+      segmentPairAffinities = read(f["segmentPairAffinities"])
     end
     close(f)
-    return Tsgm(seg, dend, dendValues)
+    return SegMST(seg, segmentPairs, segmentPairAffinities)
 end
 
 """
-save segmentation with dendrogram
+save segmentation with segmentPairsrogram
 """
-function save(fsgm::AbstractString, sgm::Tsgm)
+function save(fsgm::AbstractString, sgm::SegMST)
     f = h5open(fsgm, "w")
     f["segmentation"] = sgm.seg
-    f["segmentPair"] = sgm.dend
-    f["segmentAffinity"] = sgm.dendValues
+    f["segmentPairs"] = sgm.segmentPairs
+    f["segmentPairAffinities"] = sgm.segmentPairAffinities
     close(f)
 end
-function save(fsgm::AbstractString, seg::Tseg, dend::Tdend, dendValues::TdendValues)
-    savesgm( fsgm, Tsgm(seg,dend,dendValues) )
+function save(fsgm::AbstractString, seg::Segmentation, segmentPairs::SegmentPairs, segmentPairAffinities::SegmentPairAffinities)
+    savesgm( fsgm, SegMST(seg,segmentPairs,segmentPairAffinities) )
 end
 
 function savesgm(fsgm::AbstractString, sgm)
@@ -269,7 +269,7 @@ end
 read the error curve
 """
 function readec(fname::AbstractString, tag::AbstractString="scores")
-    ec = Tec()
+    ec = ScoreCurve()
     f = h5open(fname)
     f = f["/evaluation/$tag"]
     ec = readec(f)
@@ -278,7 +278,7 @@ function readec(fname::AbstractString, tag::AbstractString="scores")
 end
 
 function readec(f::HDF5.HDF5Group)
-    ec = Tec()
+    ec = ScoreCurve()
     for k in names(f)
         ec[ASCIIString(k)] = read(f[k])
     end
@@ -288,12 +288,12 @@ end
 """
 save the error curve
 """
-function save(fname::AbstractString, ec::Tec, tag::AbstractString="scores")
+function save(fname::AbstractString, ec::ScoreCurve, tag::AbstractString="scores")
     for (k,v) in ec
       h5write(fname, "/evaluation/$tag/$k", v)
     end
 end
-function saveec(fec::AbstractString, ec::Tec, tag::AbstractString="scores")
+function saveec(fec::AbstractString, ec::ScoreCurve, tag::AbstractString="scores")
     save(fec, ec, tag)
 end
 
@@ -301,7 +301,7 @@ end
 read multiple error curves
 """
 function readecs(fname::AbstractString)
-    ret = Tecs()
+    ret = ScoreCurves()
     f = h5open(fname)
     f = f["evaluation"]
     for tag in names(f)
@@ -314,11 +314,11 @@ end
 """
 save learning curves
 """
-function save(fname::AbstractString, ecs::Tecs)
+function save(fname::AbstractString, ecs::ScoreCurves)
     for (tag,ec) in ecs
         saveec(fname, ec, tag)
     end
 end
-function saveecs(fecs::AbstractString, ecs::Tecs)
+function saveecs(fecs::AbstractString, ecs::ScoreCurves)
     save(fecs, ecs)
 end
