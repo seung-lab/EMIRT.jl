@@ -45,13 +45,14 @@ awsEnv: AWS awsEnviroment
 qurl: String, url of queue or queue name
 """
 function fetchSQSmessage(awsEnv::AWSEnv, qurl::AbstractString)
-    if !contains(qurl, "https://sqs.")
-        # this is not a url, should be a queue name
-        qurl = get_qurl(awsEnv, qurl)
-    end
-    resp = ReceiveMessage(awsEnv, queueUrl = qurl)
-    msg = resp.obj.messageSet[1]
-    return msg
+  qurl = ASCIIString(qurl)
+  if !contains(qurl, "https://sqs.")
+      # this is not a url, should be a queue name
+      qurl = get_qurl(awsEnv, qurl)
+  end
+  resp = ReceiveMessage(awsEnv, queueUrl = qurl)
+  msg = resp.obj.messageSet[1]
+  return msg
 end
 
 """
@@ -59,30 +60,32 @@ take SQS message from queue
 will delete mssage after fetching
 """
 function takeSQSmessage!(awsEnv::AWSEnv, qurl::AbstractString="")
-    if !contains(qurl, "https://sqs.")
-        # this is not a url, should be a queue name
-        qurl = get_qurl(awsEnv, qurl)
-    end
+  qurl = ASCIIString(qurl)
+  if !contains(qurl, "https://sqs.")
+      # this is not a url, should be a queue name
+      qurl = get_qurl(awsEnv, qurl)
+  end
 
-    msg = fetchSQSmessage(awsEnv, qurl)
-    # delete the message in queue
-    deleteSQSmessage!(awsEnv, msg, qurl)
-    return msg
+  msg = fetchSQSmessage(awsEnv, qurl)
+  # delete the message in queue
+  deleteSQSmessage!(awsEnv, msg, qurl)
+  return msg
 end
 
 """
 delete SQS message
 """
 function deleteSQSmessage!(awsEnv::AWSEnv, msghandle::AbstractString, qurl::AbstractString)
-    if !contains(qurl, "https://sqs.")
-        qurl = get_qurl(awsEnv, ASCIIString(qurl))
-    end
-    resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msghandle)
-    if resp.http_code < 299
-        println("message deleted")
-    else
-        println("message taking failed!")
-    end
+  qurl = ASCIIString(qurl)
+  if !contains(qurl, "https://sqs.")
+      qurl = get_qurl(awsEnv, ASCIIString(qurl))
+  end
+  resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msghandle)
+  if resp.http_code < 299
+      println("message deleted")
+  else
+      println("message taking failed!")
+  end
 end
 function deleteSQSmessage!(awsEnv::AWSEnv, msg::AWS.SQS.MessageType, qurl::AbstractString="")
     deleteSQSmessage!(awsEnv, msg.receiptHandle, ASCIIString(qurl))
@@ -92,11 +95,12 @@ end
 put a task to SQS queue
 """
 function sendSQSmessage(awsEnv::AWSEnv, qurl::AbstractString, msg::AbstractString)
-    if !contains(qurl, "https://sqs.")
-      # AWS/src/sqs_operations.jl:62 requires ASCIIString
-      qurl = get_qurl(awsEnv, ASCIIString(qurl))
-    end
-    resp = SendMessage(awsEnv; queueUrl=ASCIIString(qurl), delaySeconds=0, messageBody=msg)
+  qurl = ASCIIString(qurl)
+  if !contains(qurl, "https://sqs.")
+    # AWS/src/sqs_operations.jl:62 requires ASCIIString
+    qurl = get_qurl(awsEnv, ASCIIString(qurl))
+  end
+  resp = SendMessage(awsEnv; queueUrl=ASCIIString(qurl), delaySeconds=0, messageBody=msg)
 end
 
 """
