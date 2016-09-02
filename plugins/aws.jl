@@ -149,6 +149,13 @@ function Base.download(env::AWSEnv, s3fname::AbstractString, lcfname::AbstractSt
     return lcfname
 end
 
+function upload(env::AWSEnv, lcfname::AbstractString, s3fname::AbstractString)
+  @assert iss3(s3fname)
+  # relies on awscli because the upload of AWS.S3 is not really working!
+  # https://github.com/JuliaCloud/AWS.jl/issues/70
+  run(`aws s3 cp $(lcfname) $(s3fname)`)
+end
+
 """
 list objects of s3. no directory/folder in the list
 
