@@ -75,7 +75,7 @@ delete SQS message
 """
 function deleteSQSmessage!(awsEnv::AWSEnv, msghandle::AbstractString, qurl::AbstractString)
     if !contains(qurl, "https://sqs.")
-        qurl = get_qurl(awsEnv, qurl)
+        qurl = get_qurl(awsEnv, ASCIIString(qurl))
     end
     resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msghandle)
     if resp.http_code < 299
@@ -85,7 +85,7 @@ function deleteSQSmessage!(awsEnv::AWSEnv, msghandle::AbstractString, qurl::Abst
     end
 end
 function deleteSQSmessage!(awsEnv::AWSEnv, msg::AWS.SQS.MessageType, qurl::AbstractString="")
-    deleteSQSmessage!(awsEnv, msg.receiptHandle, qurl)
+    deleteSQSmessage!(awsEnv, msg.receiptHandle, ASCIIString(qurl))
 end
 
 """
@@ -96,7 +96,7 @@ function sendSQSmessage(awsEnv::AWSEnv, qurl::AbstractString, msg::AbstractStrin
       # AWS/src/sqs_operations.jl:62 requires ASCIIString
       qurl = get_qurl(awsEnv, ASCIIString(qurl))
     end
-    resp = SendMessage(awsEnv; queueUrl=qurl, delaySeconds=0, messageBody=msg)
+    resp = SendMessage(awsEnv; queueUrl=ASCIIString(qurl), delaySeconds=0, messageBody=msg)
 end
 
 """
