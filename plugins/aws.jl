@@ -158,7 +158,11 @@ function upload(awsEnv::AWSEnv, lcfname::AbstractString, s3fname::AbstractString
   @assert iss3(s3fname)
   # relies on awscli because the upload of AWS.S3 is not really working!
   # https://github.com/JuliaCloud/AWS.jl/issues/70
-  run(`aws s3 cp $(lcfname) $(s3fname)`)
+  run(`aws s3 cp --recursive $(lcfname) $(s3fname)`)
+end
+
+function sync(awsEnv::AWSEnv, srcDir::AbstractString, dstDir::AbstractString)
+  run(`aws s3 sync $srcDir $dstDir`)
 end
 
 """
