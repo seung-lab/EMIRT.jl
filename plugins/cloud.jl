@@ -55,6 +55,10 @@ function fetchSQSmessage(awsEnv::AWSEnv, qurl::AbstractString)
   return msg
 end
 
+function fetchSQSmessage(qurl::AbstractString)
+  fetchSQSmessage(awsEnv, qurl)
+end
+
 """
 take SQS message from queue
 will delete mssage after fetching
@@ -71,24 +75,34 @@ function takeSQSmessage!(awsEnv::AWSEnv, qurl::AbstractString="")
   deleteSQSmessage!(awsEnv, msg, qurl)
   return msg
 end
+function takeSQSmessage!(qurl::AbstractString)
+  takeSQSmessage!(awsEnv, qurl)
+end
 
 """
 delete SQS message
 """
-function deleteSQSmessage!(awsEnv::AWSEnv, msghandle::AbstractString, qurl::AbstractString)
+function deleteSQSmessage!(awsEnv::AWSEnv, msgHandle::AbstractString, qurl::AbstractString)
   qurl = ASCIIString(qurl)
   if !contains(qurl, "https://sqs.")
       qurl = get_qurl(awsEnv, ASCIIString(qurl))
   end
-  resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msghandle)
+  resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msgHandle)
   if resp.http_code < 299
       println("message deleted")
   else
       println("message taking failed!")
   end
 end
+function deleteSQSmessage!(msgHandle::AbstractString, qurl::AbstractString)
+  deleteSQSmessage!(awsEnv, msgHandle, qurl)
+end
+
 function deleteSQSmessage!(awsEnv::AWSEnv, msg::AWS.SQS.MessageType, qurl::AbstractString="")
     deleteSQSmessage!(awsEnv, msg.receiptHandle, ASCIIString(qurl))
+end
+function deleteSQSmessage!(msg::AWS.SQS.MessageType, qurl::AbstractString)
+  deleteSQSmessage!(awsEnv, msg, qurl)
 end
 
 """
@@ -102,12 +116,23 @@ function sendSQSmessage(awsEnv::AWSEnv, qurl::AbstractString, msg::AbstractStrin
   end
   resp = SendMessage(awsEnv; queueUrl=ASCIIString(qurl), delaySeconds=0, messageBody=msg)
 end
+function sendSQSmessage(qurl::AbstractString, msg::AbstractString)
+  sendSQSmessage(awsEnv, qurl, msg)
+end
 
 """
 whether this file is in s3
 """
 function iss3(fname)
     return ismatch(r"^(s3://)", fname)
+end
+isAWSS3 = iss3
+
+"""
+whether this file is google storage
+"""
+function isGoogleStorage(fname)
+  return ismatch(r"^(gs://)", fname)
 end
 
 """
@@ -120,6 +145,22 @@ function splits3(path::AbstractString)
 end
 
 """
+download file from AWS S3
+"""
+function downloads3(remoteFile::AbstractString, localFile::AbstractString)
+  # get bucket name and key
+  bkt,key = splits3(remoteFile)
+  # download s3 file using awscli
+  f = open(localFile, "w")
+  resp = S3.get_object(awsEnv, bkt, key)
+  # check that the file exist
+  @assert resp.http_code == 200
+  write( f, resp.obj )
+  close(f)
+  return localFile
+end
+
+"""
 transfer s3 file to local and return local file name
 `Inputs:`
 awsEnv: AWS awsEnviroment
@@ -129,40 +170,52 @@ lcname: String, local temporal folder path or local file name
 `Outputs:`
 lcname: String, local file name
 """
-function Base.download(awsEnv::AWSEnv, s3fname::AbstractString, lcfname::AbstractString)
+function Base.download(awsEnv::AWSEnv, remoteFile::AbstractString, localFile::AbstractString)
     # directly return if not s3 file
-    if !iss3(s3fname)
-        return s3fname
+    if !iss3(remoteFile)
+        return remoteFile
     end
 
-    if isdir(lcfname)
-        lcfname = joinpath(lcfname, basename(s3fname))
+    if isdir(localFile)
+        localFile = joinpath(localFile, basename(remoteFile))
     end
     # remove existing file
-    if isfile(lcfname)
-        rm(lcfname)
-    elseif !isdir(dirname(lcfname))
+    if isfile(localFile)
+        rm(localFile)
+    elseif !isdir(dirname(localFile))
         # create local directory
-        mkdir(dirname(lcfname))
+        mkdir(dirname(localFile))
     end
-    # get bucket name and key
-    bkt,key = splits3(s3fname)
-    # download s3 file using awscli
-    f = open(lcfname, "w")
-    resp = S3.get_object(awsEnv, bkt, key)
-    # check that the file exist
-    @assert resp.http_code == 200
-    write( f, resp.obj )
-    close(f)
-    # run(`aws s3 cp $(s3name) $(lcfname)`)
-    return lcfname
+
+    if isAWSS3(remoteFile)
+      downloads3(remoteFile, localFile)
+      # run(`aws s3 cp $(s3name) $(localFile)`)
+    elseif isGoogleStorage(remoteFile)
+      run(`gsutil -m cp $remoteFile $localFile`)
+    end
+    return localFile
 end
 
-function upload(awsEnv::AWSEnv, lcfname::AbstractString, s3fname::AbstractString)
-  @assert iss3(s3fname)
-  # relies on awscli because the upload of AWS.S3 is not really working!
-  # https://github.com/JuliaCloud/AWS.jl/issues/70
-  run(`aws s3 cp --recursive $(lcfname) $(s3fname)`)
+function upload(awsEnv::AWSEnv, localFile::AbstractString, remoteFile::AbstractString)
+  if iss3(remoteFile)
+    # relies on awscli because the upload of AWS.S3 is not really working!
+    # https://github.com/JuliaCloud/AWS.jl/issues/70
+    if isdir(localFile)
+      run(`aws s3 cp --recursive $(localFile) $(remoteFile)`)
+    else
+      @assert isfile(localFile)
+      run(`aws s3 cp $(localFile) $(remoteFile)`)
+    end
+  elseif isGoogleStorage(remoteFile)
+    if isdir(localFile)
+      run(`gsutil -m cp -r $localFile $remoteFile`)
+    else
+      @assert isfile(localFile)
+      run(`gsutil -m cp $localFile $remoteFile`)
+    end
+  else
+    error("unsupported remote file link: $(remoteFile)")
+  end
 end
 
 function sync(awsEnv::AWSEnv, srcDir::AbstractString, dstDir::AbstractString)
