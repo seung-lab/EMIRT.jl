@@ -170,7 +170,7 @@ lcname: String, local temporal folder path or local file name
 `Outputs:`
 lcname: String, local file name
 """
-function Base.download(awsEnv::AWSEnv, remoteFile::AbstractString, localFile::AbstractString)
+function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     # directly return if not s3 file
     if !iss3(remoteFile)
         return remoteFile
