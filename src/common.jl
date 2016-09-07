@@ -2,12 +2,12 @@
 Utilities
 =#
 
-export crop_border
+export crop_array_border
 
 """
 throwaway the border region of an array (ndims > 3), currently only works for 3D cropsize.
 """
-function crop_border(arr::Array, cropsize::Union{Vector,Tuple})
+function crop_array_border(arr::Array, cropsize::Union{Vector,Tuple})
     @assert ndims(arr) >= 3
     sz = size(arr)
     @assert sz[1]>cropsize[1]*2 &&
