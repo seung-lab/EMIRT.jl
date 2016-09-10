@@ -196,7 +196,7 @@ function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     return localFile
 end
 
-function upload(awsEnv::AWSEnv, localFile::AbstractString, remoteFile::AbstractString)
+function upload(localFile::AbstractString, remoteFile::AbstractString)
   if iss3(remoteFile)
     # relies on awscli because the upload of AWS.S3 is not really working!
     # https://github.com/JuliaCloud/AWS.jl/issues/70
