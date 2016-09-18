@@ -1,9 +1,11 @@
-export show, plot
+# export show, plot
 import Images: Image
 import ImageView: view
 import Base: show
 using Gadfly
 import Gadfly: plot
+
+using FixedPointNumbers
 
 include("../src/segmentation.jl")
 include("../src/evaluate.jl")
@@ -19,7 +21,7 @@ end
 
 # show raw image
 function show(img::EMImage)
-    view(Image(img, spatialorder=["x","y","z"]))
+    view(Image(Array{UFixed{Uint8,8},3}(img), spatialorder=["x","y","z"]))
 end
 
 # show raw image and segmentation combined together
