@@ -1,8 +1,7 @@
 export seg2aff, markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!
 
-include("domains.jl")
-
-include("types.jl")
+# require("domains.jl")
+# require("types.jl")
 
 """
 construct affinity map from segmentation

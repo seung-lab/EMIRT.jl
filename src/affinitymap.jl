@@ -1,6 +1,6 @@
-include( "domains.jl" )
-include("segmentation.jl")
-include("types.jl")
+# require( "domains.jl" )
+# require("segmentation.jl")
+# require("types.jl")
 
 export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
 

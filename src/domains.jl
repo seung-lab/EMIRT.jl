@@ -1,4 +1,4 @@
-include("types.jl")
+# require("types.jl")
 
 export Tdjsets, find!, union!, setallroot!, Tdomains
 

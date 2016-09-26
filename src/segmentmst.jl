@@ -1,6 +1,6 @@
-include("types.jl")
-include("evaluate.jl")
-include("errorcurve.jl")
+# require("types.jl")
+# require("evaluate.jl")
+# require("errorcurve.jl")
 
 export merge, merge!, segment, segment!, sgm2error, sgm2ec
 #
