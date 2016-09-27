@@ -45,7 +45,7 @@ awsEnv: AWS awsEnviroment
 qurl: String, url of queue or queue name
 """
 function fetchSQSmessage(awsEnv::AWSEnv, qurl::AbstractString)
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
       # this is not a url, should be a queue name
       qurl = get_qurl(awsEnv, qurl)
@@ -64,7 +64,7 @@ take SQS message from queue
 will delete mssage after fetching
 """
 function takeSQSmessage!(awsEnv::AWSEnv, qurl::AbstractString="")
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
       # this is not a url, should be a queue name
       qurl = get_qurl(awsEnv, qurl)
@@ -83,9 +83,9 @@ end
 delete SQS message
 """
 function deleteSQSmessage!(awsEnv::AWSEnv, msgHandle::AbstractString, qurl::AbstractString)
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
-      qurl = get_qurl(awsEnv, ASCIIString(qurl))
+      qurl = get_qurl(awsEnv, String(qurl))
   end
   resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msgHandle)
   if resp.http_code < 299
@@ -99,7 +99,7 @@ function deleteSQSmessage!(msgHandle::AbstractString, qurl::AbstractString)
 end
 
 function deleteSQSmessage!(awsEnv::AWSEnv, msg::AWS.SQS.MessageType, qurl::AbstractString="")
-    deleteSQSmessage!(awsEnv, msg.receiptHandle, ASCIIString(qurl))
+    deleteSQSmessage!(awsEnv, msg.receiptHandle, String(qurl))
 end
 function deleteSQSmessage!(msg::AWS.SQS.MessageType, qurl::AbstractString)
   deleteSQSmessage!(awsEnv, msg, qurl)
@@ -109,12 +109,12 @@ end
 put a task to SQS queue
 """
 function sendSQSmessage(awsEnv::AWSEnv, qurl::AbstractString, msg::AbstractString)
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
-    # AWS/src/sqs_operations.jl:62 requires ASCIIString
-    qurl = get_qurl(awsEnv, ASCIIString(qurl))
+    # AWS/src/sqs_operations.jl:62 requires String
+    qurl = get_qurl(awsEnv, String(qurl))
   end
-  resp = SendMessage(awsEnv; queueUrl=ASCIIString(qurl), delaySeconds=0, messageBody=msg)
+  resp = SendMessage(awsEnv; queueUrl=String(qurl), delaySeconds=0, messageBody=msg)
 end
 function sendSQSmessage(qurl::AbstractString, msg::AbstractString)
   sendSQSmessage(awsEnv, qurl, msg)
@@ -141,13 +141,13 @@ split a s3 path to bucket name and key
 function splits3(path::AbstractString)
     path = replace(path, "s3://", "")
     bkt, key = split(path, "/", limit = 2)
-    return ASCIIString(bkt), ASCIIString(key)
+    return String(bkt), String(key)
 end
 
 """
 download file from AWS S3
 """
-function downloads3(remoteFile::AbstractString, localFile::AbstractString)
+function downloads3(remoteFile::AbstractString, localFile::AbstractString; awsEnv::AWSEnv = awsEnv)
   # get bucket name and key
   bkt,key = splits3(remoteFile)
   # download s3 file using awscli
@@ -170,7 +170,7 @@ lcname: String, local temporal folder path or local file name
 `Outputs:`
 lcname: String, local file name
 """
-function Base.download(remoteFile::AbstractString, localFile::AbstractString)
+function Base.download(remoteFile::AbstractString, localFile::AbstractString; awsEnv::AWSEnv = awsEnv)
     # directly return if not s3 file
     if !iss3(remoteFile)
         return remoteFile
@@ -250,7 +250,7 @@ function s3_list_objects(awsEnv::AWSEnv, bkt::AbstractString, prefix::AbstractSt
     bucket_options = AWS.S3.GetBucketOptions(delimiter="/", prefix=prefix)
     resp = AWS.S3.get_bkt(awsEnv, bkt; options=bucket_options)
 
-    keylst = Vector{ASCIIString}()
+    keylst = Vector{String}()
     for content in resp.obj.contents
         fname = replace(content.key, prefix, "")
         if fname!="" && ismatch(re, fname)

@@ -280,7 +280,7 @@ end
 function readec(f::HDF5.HDF5Group)
     ec = ScoreCurve()
     for k in names(f)
-        ec[ASCIIString(k)] = read(f[k])
+        ec[String(k)] = read(f[k])
     end
     return ec
 end
