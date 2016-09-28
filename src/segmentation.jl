@@ -1,4 +1,6 @@
-export seg2aff, markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!
+export seg2aff, markbdr!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!_V1, segid1N!, segid1N!_V3
+
+using Base.Threads
 
 # require("domains.jl")
 # require("types.jl")
@@ -15,7 +17,7 @@ function seg2aff(seg::Segmentation)
 end
 
 # label all the singletones as boundary
-function markbdr!( seg::Segmentation )
+function markbdr!{T}( seg::Array{T,3} )
 
     # a flag array indicating whether it is segment
     flg = falses(seg)
@@ -59,7 +61,7 @@ function markbdr!( seg::Segmentation )
                     continue
                 end
                 # it is a singletone
-                seg[x,y,z] = 0
+                seg[x,y,z] = T(0)
             end
         end
     end
@@ -69,10 +71,9 @@ end
 # relabel the segment according to connectivity
 # where N is the total number of segments
 # Note that this is different from relabel1N in segerror package, which relabeles in 2D and labeled the segment ID to 1-N, where N is the total number of segments.
-function relabel_seg( lbl::Segmentation, dim=3 )
-    @assert dim==2 || dim==3
-    N = length(lbl)
-    X,Y,Z = size(lbl)
+function relabel_seg{T}( seg::Array{T,3} )
+    N = length(seg)
+    X,Y,Z = size(seg)
 
     # initialize the disjoint sets
     djs = Tdjsets(N)
@@ -81,7 +82,7 @@ function relabel_seg( lbl::Segmentation, dim=3 )
     for x in 2:X
         for y in 1:Y
             for z in 1:Z
-                if lbl[x,y,z]>0 && lbl[x,y,z]==lbl[x-1,y,z]
+                if seg[x,y,z]>0 && seg[x,y,z]==seg[x-1,y,z]
                     # should union these two sets
                     vid1 = x   + (y-1)*X + (z-1)*X*Y
                     vid2 = x-1 + (y-1)*X + (z-1)*X*Y
@@ -99,7 +100,7 @@ function relabel_seg( lbl::Segmentation, dim=3 )
     for x in 1:X
         for y in 2:Y
             for z in 1:Z
-                if lbl[x,y,z]>0 && lbl[x,y,z]==lbl[x,y-1,z]
+                if seg[x,y,z]>0 && seg[x,y,z]==seg[x,y-1,z]
                     vid1 = x + (y-1)*X + (z-1)*X*Y
                     vid2 = x + (y-2)*X + (z-1)*X*Y
                     r1 = find!(djs, vid1)
@@ -111,17 +112,15 @@ function relabel_seg( lbl::Segmentation, dim=3 )
     end
 
     # z affinity
-    if dim==3
-        for x in 1:X
-            for y in 1:Y
-                for z in 2:Z
-                    if lbl[x,y,z]>0 && lbl[x,y,z] == lbl[x,y,z-1]
-                        vid1 = x + (y-1)*X + (z-1)*X*Y
-                        vid2 = x + (y-1)*X + (z-2)*X*Y
-                        r1 = find!(djs, vid1)
-                        r2 = find!(djs, vid2)
-                        union!(djs, r1, r2)
-                    end
+    for x in 1:X
+        for y in 1:Y
+            for z in 2:Z
+                if seg[x,y,z]>0 && seg[x,y,z] == seg[x,y,z-1]
+                    vid1 = x + (y-1)*X + (z-1)*X*Y
+                    vid2 = x + (y-1)*X + (z-2)*X*Y
+                    r1 = find!(djs, vid1)
+                    r2 = find!(djs, vid2)
+                    union!(djs, r1, r2)
                 end
             end
         end
@@ -129,38 +128,67 @@ function relabel_seg( lbl::Segmentation, dim=3 )
 
     # get current segmentation
     setallroot!( djs )
-    seg = deepcopy(djs.sets)
-    seg = reshape(seg, size(lbl))
+    ret = deepcopy(djs.sets)
+    ret = reshape(seg, size(seg))
     # mark all the singletons to 0 as boundary
-    markbdr!(seg)
-    return seg
+    markbdr!(ret)
+    return ret
 end
 
-
 # reassign segment ID as 1-N
-function segid1N!( lbl::Segmentation )
+function segid1N!{T}( seg::Array{T,3} )
     # dictionary of ids
-    did = Dict()
-    did[0] = 0
+    did = Dict{T, T}(T(0)=>T(0))
+    sizehint!(did, div(length(seg),32))
 
     # number of segments
-    N = 0
-    # get the segment ID map
-    for v in lbl
-        if v > 0
-            if !haskey(did, v)
-                # a new segment ID
-                N += 1
-                did[v] = N
+    N = T(0)
+    v = T(0)
+    # assign the map to a new segment
+    for z in 1:size(seg, 3)
+        for y in 1:size(seg, 2)
+            for x in 1:size(seg, 1)
+                v = seg[x,y,z]
+                if !haskey(did, v)
+                    # a new segment ID
+                    N += T(1)
+                    did[v] = N
+                    seg[x,y,z] = N
+                else
+                    seg[x,y,z] = did[ v ]
+                end
             end
         end
     end
+    return N
+end
 
+function segid1N!_V3{T}( seg::Array{T,3} )
+    # dictionary of ids
+    did = Dict{T, T}(T(0)=>T(0))
+    sizehint!(did, div(length(seg),32))
+
+    # number of segments
+    N = Atomic{T}(0)
+    v = T(0)
+
+    # lock of critical section
+    critical = SpinLock()
     # assign the map to a new segment
-    for x in 1:size(lbl, 1)
-        for y in 1:size(lbl, 2)
-            for z in 1:size(lbl, 3)
-                lbl[x,y,z] = did[ lbl[x,y,z] ]
+    for z in 1:size(seg, 3)
+        for y in 1:size(seg, 2)
+            @threads for x in 1:size(seg, 1)
+                v = seg[x,y,z]
+                if !haskey(did, v)
+                    # a new segment ID
+                    lock(critical)
+                    atomic_add!(N, 1)
+                    did[v] = N
+                    seg[x,y,z] = N
+                    unlock(critical)
+                else
+                    seg[x,y,z] = did[ v ]
+                end
             end
         end
     end
@@ -168,60 +196,60 @@ function segid1N!( lbl::Segmentation )
 end
 
 # add boundary between contacting segments
-function add_lbl_boundary!(lbl::Array, conn=8)
+function add_lbl_boundary!(seg::Array, conn=8)
     # neighborhood definition
     @assert conn==8 || conn==4
-    sx,sy,sz = size(lbl)
+    sx,sy,sz = size(seg)
     for z = 1:sz
         for y = 1:sy
             for x = 1:sx
-                if lbl[x,y,z]==0
+                if seg[x,y,z]==0
                     # ignore the existing boundary
                     continue
                 end
                 # flag of central pixel
                 cf = false
                 # x direction
-                if x<sx && lbl[x+1,y,z]>0 && lbl[x,y,z]!=lbl[x+1,y,z]
+                if x<sx && seg[x+1,y,z]>0 && seg[x,y,z]!=seg[x+1,y,z]
                     cf = true
-                    lbl[x+1,y,z] = 0
+                    seg[x+1,y,z] = 0
                 end
                 # y direction
-                if y<sy && lbl[x,y+1,z]>0 && lbl[x,y,z]!=lbl[x,y+1,z]
+                if y<sy && seg[x,y+1,z]>0 && seg[x,y,z]!=seg[x,y+1,z]
                     cf = true
-                    lbl[x,y+1,z] = 0
+                    seg[x,y+1,z] = 0
                 end
-                if x>1 && lbl[x-1,y,z]>0 && lbl[x,y,z]!=lbl[x-1,y,z]
+                if x>1 && seg[x-1,y,z]>0 && seg[x,y,z]!=seg[x-1,y,z]
                     cf = true
-                    lbl[x-1,y,z] = 0
+                    seg[x-1,y,z] = 0
                 end
-                if y>1 && lbl[x,y-1,z]>0 && lbl[x,y,z]!=lbl[x,y-1,z]
+                if y>1 && seg[x,y-1,z]>0 && seg[x,y,z]!=seg[x,y-1,z]
                     cf = true
-                    lbl[x,y-1,z] = 0
+                    seg[x,y-1,z] = 0
                 end
 
                 if conn==8
-                    if x<sx && y<sy && lbl[x+1,y+1,z]>0 && lbl[x,y,z]!=lbl[x+1,y+1,z]
+                    if x<sx && y<sy && seg[x+1,y+1,z]>0 && seg[x,y,z]!=seg[x+1,y+1,z]
                         cf = true
-                        lbl[x+1,y+1,z] = 0
+                        seg[x+1,y+1,z] = 0
                     end
 
-                    if x>1 && y<sy && lbl[x-1,y+1,z]>0 && lbl[x,y,z]!=lbl[x-1,y+1,z]
+                    if x>1 && y<sy && seg[x-1,y+1,z]>0 && seg[x,y,z]!=seg[x-1,y+1,z]
                         cf = true
-                        lbl[x-1,y+1,z] = 0
+                        seg[x-1,y+1,z] = 0
                     end
-                    if x<sx && y>1 && lbl[x+1,y-1,z]>0 && lbl[x,y,z]!=lbl[x+1,y-1,z]
+                    if x<sx && y>1 && seg[x+1,y-1,z]>0 && seg[x,y,z]!=seg[x+1,y-1,z]
                         cf = true
-                        lbl[x+1,y-1,z] = 0
+                        seg[x+1,y-1,z] = 0
                     end
-                    if x>1 && y>1 && lbl[x-1,y-1,z]>0 && lbl[x,y,z]!=lbl[x-1,y-1,z]
+                    if x>1 && y>1 && seg[x-1,y-1,z]>0 && seg[x,y,z]!=seg[x-1,y-1,z]
                         cf = true
-                        lbl[x-1,y-1,z] = 0
+                        seg[x-1,y-1,z] = 0
                     end
                 end
                 if cf
                     print("$x,$y, ")
-                    lbl[x,y,z] = 0
+                    seg[x,y,z] = 0
                 end
             end
         end
