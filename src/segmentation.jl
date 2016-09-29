@@ -1,6 +1,6 @@
 export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!_V1, segid1N!, segid1N!_V3
 
-using Base.Threads
+# using Base.Threads
 
 # require("domains.jl")
 # require("types.jl")
@@ -71,9 +71,9 @@ function relabel_seg{T}( seg::Array{T,3} )
     djs = Tdjsets(N)
 
     # x affinity
-    for x in 0x00000002:T(X)
-        for y in 0x00000001:T(Y)
-            for z in 0x00000001:T(Z)
+    for x in 0x00000002:X
+        for y in 0x00000001:Y
+            for z in 0x00000001:Z
                 if seg[x,y,z]>0 && seg[x,y,z]==seg[x-1,y,z]
                     # should union these two sets
                     vid1 = x            + (y-0x00000001)*X + (z-0x00000001)*X*Y
@@ -131,7 +131,7 @@ end
 function segid1N!{T}( seg::Array{T,3} )
     # dictionary of ids
     did = Dict{T, T}(T(0)=>T(0))
-    sizehint!(did, div(length(seg),32))
+    sizehint!(did, div(length(seg),16))
 
     # number of segments
     N = 0x00000000
@@ -155,6 +155,7 @@ function segid1N!{T}( seg::Array{T,3} )
     return N
 end
 
+#==
 """
 multiple threads version runs without stop, used all the cpu!
 """
@@ -190,6 +191,7 @@ function segid1N!_V3{T}( seg::Array{T,3} )
     end
     return N
 end
+==#
 
 # add boundary between contacting segments
 function add_lbl_boundary!{T}(seg::Array{T,3}, conn=8)
