@@ -1,4 +1,4 @@
-export seg2aff, markbdr!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!_V1, segid1N!, segid1N!_V3
+export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!_V1, segid1N!, segid1N!_V3
 
 using Base.Threads
 
@@ -8,7 +8,7 @@ using Base.Threads
 """
 construct affinity map from segmentation
 """
-function seg2aff(seg::Segmentation)
+function seg2aff{T}(seg::Array{T,3})
   aff = zeros(Float32, (size(seg)..., 3))
   aff[2:end, :,:,1] = (seg[2:end, :,:] .== seg[1:end-1, :,:])
   aff[:, 2:end,:,2] = (seg[:, 2:end,:] .== seg[:, 1:end-1,:])
@@ -17,7 +17,7 @@ function seg2aff(seg::Segmentation)
 end
 
 # label all the singletones as boundary
-function markbdr!{T}( seg::Array{T,3} )
+function singleton2boundary!{T}( seg::Array{T,3} )
 
     # a flag array indicating whether it is segment
     flg = falses(seg)
@@ -32,31 +32,22 @@ function markbdr!{T}( seg::Array{T,3} )
                     continue
                 end
                 if x>1 && seg[x,y,z]==seg[x-1,y,z]
-                    flg[x,  y,z] = true
-                    flg[x-1,y,z] = true
                     continue
                 end
                 if x<X && seg[x,y,z]==seg[x+1,y,z]
-                    flg[x,  y,z] = true
                     flg[x+1,y,z] = true
                     continue
                 end
                 if y>1 && seg[x,y,z]==seg[x,y-1,z]
-                    flg[x,y,z] = true
-                    flg[x,y-1,z] = true
                     continue
                 end
                 if y<Y && seg[x,y,z]==seg[x,y+1,z]
-                    flg[x,y,  z] = true
                     flg[x,y+1,z] = true
                 end
                 if z>1 && seg[x,y,z]==seg[x,y,z-1]
-                    flg[x,y,z  ] = true
-                    flg[x,y,z-1] = true
                     continue
                 end
                 if z<Z && seg[x,y,z]==seg[x,y,z+1]
-                    flg[x,y,z  ] = true
                     flg[x,y,z+1] = true
                     continue
                 end
@@ -74,18 +65,19 @@ end
 function relabel_seg{T}( seg::Array{T,3} )
     N = length(seg)
     X,Y,Z = size(seg)
+    X = T(X);   Y = T(Y);   Z = T(Z);
 
     # initialize the disjoint sets
     djs = Tdjsets(N)
 
     # x affinity
-    for x in 2:X
-        for y in 1:Y
-            for z in 1:Z
+    for x in 0x00000002:T(X)
+        for y in 0x00000001:T(Y)
+            for z in 0x00000001:T(Z)
                 if seg[x,y,z]>0 && seg[x,y,z]==seg[x-1,y,z]
                     # should union these two sets
-                    vid1 = x   + (y-1)*X + (z-1)*X*Y
-                    vid2 = x-1 + (y-1)*X + (z-1)*X*Y
+                    vid1 = x            + (y-0x00000001)*X + (z-0x00000001)*X*Y
+                    vid2 = x-0x00000001 + (y-0x00000001)*X + (z-0x00000001)*X*Y
                     # find tree root
                     r1 = find!(djs, vid1)
                     r2 = find!(djs, vid2)
@@ -97,12 +89,12 @@ function relabel_seg{T}( seg::Array{T,3} )
     end
 
     # y affinity
-    for x in 1:X
-        for y in 2:Y
-            for z in 1:Z
-                if seg[x,y,z]>0 && seg[x,y,z]==seg[x,y-1,z]
-                    vid1 = x + (y-1)*X + (z-1)*X*Y
-                    vid2 = x + (y-2)*X + (z-1)*X*Y
+    for x in 0x00000001:T(X)
+        for y in 0x00000002:T(Y)
+            for z in 0x00000001:T(Z)
+                if seg[x,y,z]>0x00000000 && seg[x,y,z]==seg[x,y-0x00000001,z]
+                    vid1 = x + (y-0x00000001)*X + (z-0x00000001)*X*Y
+                    vid2 = x + (y-0x00000002)*X + (z-0x00000001)*X*Y
                     r1 = find!(djs, vid1)
                     r2 = find!(djs, vid2)
                     union!(djs, r1, r2)
@@ -112,12 +104,12 @@ function relabel_seg{T}( seg::Array{T,3} )
     end
 
     # z affinity
-    for x in 1:X
-        for y in 1:Y
-            for z in 2:Z
-                if seg[x,y,z]>0 && seg[x,y,z] == seg[x,y,z-1]
-                    vid1 = x + (y-1)*X + (z-1)*X*Y
-                    vid2 = x + (y-1)*X + (z-2)*X*Y
+    for x in 0x00000001:T(X)
+        for y in 0x00000001:T(Y)
+            for z in 0x00000002:T(Z)
+                if seg[x,y,z]>0x00000000 && seg[x,y,z] == seg[x,y,z-0x00000001]
+                    vid1 = x + (y-0x00000001)*X + (z-0x00000001)*X*Y
+                    vid2 = x + (y-0x00000001)*X + (z-0x00000002)*X*Y
                     r1 = find!(djs, vid1)
                     r2 = find!(djs, vid2)
                     union!(djs, r1, r2)
@@ -128,10 +120,10 @@ function relabel_seg{T}( seg::Array{T,3} )
 
     # get current segmentation
     setallroot!( djs )
-    ret = deepcopy(djs.sets)
-    ret = reshape(seg, size(seg))
+    ret = djs.sets
+    ret = reshape(ret, size(seg))
     # mark all the singletons to 0 as boundary
-    markbdr!(ret)
+    singleton2boundary!(ret)
     return ret
 end
 
@@ -142,8 +134,8 @@ function segid1N!{T}( seg::Array{T,3} )
     sizehint!(did, div(length(seg),32))
 
     # number of segments
-    N = T(0)
-    v = T(0)
+    N = 0x00000000
+    v = 0x00000000
     # assign the map to a new segment
     for z in 1:size(seg, 3)
         for y in 1:size(seg, 2)
@@ -151,7 +143,7 @@ function segid1N!{T}( seg::Array{T,3} )
                 v = seg[x,y,z]
                 if !haskey(did, v)
                     # a new segment ID
-                    N += T(1)
+                    N += 0x00000001
                     did[v] = N
                     seg[x,y,z] = N
                 else
@@ -163,6 +155,9 @@ function segid1N!{T}( seg::Array{T,3} )
     return N
 end
 
+"""
+multiple threads version runs without stop, used all the cpu!
+"""
 function segid1N!_V3{T}( seg::Array{T,3} )
     # dictionary of ids
     did = Dict{T, T}(T(0)=>T(0))
@@ -182,7 +177,8 @@ function segid1N!_V3{T}( seg::Array{T,3} )
                 if !haskey(did, v)
                     # a new segment ID
                     lock(critical)
-                    atomic_add!(N, 1)
+                    # atomic_add!(N, 1)
+                    N += 1
                     did[v] = N
                     seg[x,y,z] = N
                     unlock(critical)
@@ -196,60 +192,60 @@ function segid1N!_V3{T}( seg::Array{T,3} )
 end
 
 # add boundary between contacting segments
-function add_lbl_boundary!(seg::Array, conn=8)
+function add_lbl_boundary!{T}(seg::Array{T,3}, conn=8)
     # neighborhood definition
     @assert conn==8 || conn==4
     sx,sy,sz = size(seg)
     for z = 1:sz
         for y = 1:sy
             for x = 1:sx
-                if seg[x,y,z]==0
+                if seg[x,y,z]==T(0)
                     # ignore the existing boundary
                     continue
                 end
                 # flag of central pixel
                 cf = false
                 # x direction
-                if x<sx && seg[x+1,y,z]>0 && seg[x,y,z]!=seg[x+1,y,z]
+                if x<sx && seg[x+1,y,z]>T(0) && seg[x,y,z]!=seg[x+1,y,z]
                     cf = true
-                    seg[x+1,y,z] = 0
+                    seg[x+1,y,z] = T(0)
                 end
                 # y direction
-                if y<sy && seg[x,y+1,z]>0 && seg[x,y,z]!=seg[x,y+1,z]
+                if y<sy && seg[x,y+1,z]>T(0) && seg[x,y,z]!=seg[x,y+1,z]
                     cf = true
-                    seg[x,y+1,z] = 0
+                    seg[x,y+1,z] = T(0)
                 end
-                if x>1 && seg[x-1,y,z]>0 && seg[x,y,z]!=seg[x-1,y,z]
+                if x>1 && seg[x-1,y,z]>T(0) && seg[x,y,z]!=seg[x-1,y,z]
                     cf = true
-                    seg[x-1,y,z] = 0
+                    seg[x-1,y,z] = T(0)
                 end
-                if y>1 && seg[x,y-1,z]>0 && seg[x,y,z]!=seg[x,y-1,z]
+                if y>1 && seg[x,y-1,z]>T(0) && seg[x,y,z]!=seg[x,y-1,z]
                     cf = true
-                    seg[x,y-1,z] = 0
+                    seg[x,y-1,z] = T(0)
                 end
 
                 if conn==8
-                    if x<sx && y<sy && seg[x+1,y+1,z]>0 && seg[x,y,z]!=seg[x+1,y+1,z]
+                    if x<sx && y<sy && seg[x+1,y+1,z]>T(0) && seg[x,y,z]!=seg[x+1,y+1,z]
                         cf = true
-                        seg[x+1,y+1,z] = 0
+                        seg[x+1,y+1,z] = T(0)
                     end
 
-                    if x>1 && y<sy && seg[x-1,y+1,z]>0 && seg[x,y,z]!=seg[x-1,y+1,z]
+                    if x>1 && y<sy && seg[x-1,y+1,z]>T(0) && seg[x,y,z]!=seg[x-1,y+1,z]
                         cf = true
-                        seg[x-1,y+1,z] = 0
+                        seg[x-1,y+1,z] = T(0)
                     end
-                    if x<sx && y>1 && seg[x+1,y-1,z]>0 && seg[x,y,z]!=seg[x+1,y-1,z]
+                    if x<sx && y>1 && seg[x+1,y-1,z]>T(0) && seg[x,y,z]!=seg[x+1,y-1,z]
                         cf = true
-                        seg[x+1,y-1,z] = 0
+                        seg[x+1,y-1,z] = T(0)
                     end
-                    if x>1 && y>1 && seg[x-1,y-1,z]>0 && seg[x,y,z]!=seg[x-1,y-1,z]
+                    if x>1 && y>1 && seg[x-1,y-1,z]>T(0) && seg[x,y,z]!=seg[x-1,y-1,z]
                         cf = true
-                        seg[x-1,y-1,z] = 0
+                        seg[x-1,y-1,z] = T(0)
                     end
                 end
                 if cf
                     print("$x,$y, ")
-                    seg[x,y,z] = 0
+                    seg[x,y,z] = T(0)
                 end
             end
         end
@@ -265,7 +261,7 @@ seg: a segmentation or label of image volume
 Outputs:
 dms: domains for fast union-find algorithm defined in "domains.jl"
 """
-function seg2dms(seg::Segmentation, is_merge = true)
+function segmentation2domains{T}(seg::Array{T,3}; is_merge = true)
     # initialize a domain as singletons
     @assert ndims(seg)==2 || ndims(seg)==3
     dms = Tdomains( length(seg) )
@@ -277,31 +273,32 @@ function seg2dms(seg::Segmentation, is_merge = true)
 
     # volume size
     sx,sy,sz = size(seg)
+    sx = T(sx); sy = T(sy); sz = T(sz)
 
     # union all the voxel with same segment ID
-    for z in 1:sz
-        for y in 1:sy
-            for x in 1:sx
+    for z in 0x00000001:sz
+        for y in 0x00000001:sy
+            for x in 0x00000001:sx
                 # voxel id
-                vid1 = x + (y-1)*sx + (z-1)*sx*sy
+                vid1 = x + (y-0x00000001)*sx + (z-0x00000001)*sx*sy
                 # segmentation ID
                 sid1 = seg[x,y,z]
 
                 # x affinity
-                if x>1 && sid1==seg[x-1,y,z]
-                    vid2 = x-1 + (y-1)*sx + (z-1)*sx*sy
+                if x>0x00000001 && sid1==seg[x-0x00000001,y,z]
+                    vid2 = x-0x00000001 + (y-0x00000001)*sx + (z-0x00000001)*sx*sy
                     union!(dms, vid1, vid2)
                 end
 
                 # y affinity
-                if y>1 && sid1==seg[x,y-1,z]
-                    vid2 = x + (y-2)*sx + (z-1)*sx*sy
+                if y>0x00000001 && sid1==seg[x,y-0x00000001,z]
+                    vid2 = x + (y-0x00000002)*sx + (z-0x00000001)*sx*sy
                     union!(dms, vid1, vid2)
                 end
 
                 # z affinity
-                if z>1 && sid1==seg[x,y,z-1]
-                    vid2 = x + (y-1)*sx + (z-2)*sx*sy
+                if z>0x00000001 && sid1==seg[x,y,z-0x00000001]
+                    vid2 = x + (y-0x00000001)*sx + (z-0x00000002)*sx*sy
                     union!(dms, vid1, vid2)
                 end
             end
@@ -319,9 +316,9 @@ ret: rgb image array with a size of X x Y x Z x 3, the color dim is the last one
 """
 function seg2rgb(seg::Segmentation)
     # the color dict, key is segment id, value is color
-    dcol = Dict{UInt32, Vector{Float32}}()
+    dcol = Dict{UInt32, Vector{Float32}}(0x00000000 => [0x00000000, 0x00000000, 0x00000000])
     # set the boundary color to be black
-    dcol[0] = [0,0,0]
+    # dcol[0] = [0,0,0]
 
     # create RGB image
     sx,sy,sz = size(seg)
@@ -353,10 +350,10 @@ alpha2: the alpha value of the segmentation
 Outputs:
 ret: composited RGBA image array
 """
-function seg_overlay_img(img, seg, alpha1=0.5, alpha2=0.5)
+function seg_overlay_img(img::Array, seg::Array; alpha1::Float32=0.5f0, alpha2::Float32=0.5f0)
     @assert size(img)==size(seg)
-    @assert alpha1>0 && alpha1<1
-    @assert alpha2>0 && alpha2<1
+    @assert alpha1>0.0f0 && alpha1<1.0f0
+    @assert alpha2>0.0f0 && alpha2<1.0f0
     sx,sy,sz = size(img)
 
     # initialize the returned RGBA image
