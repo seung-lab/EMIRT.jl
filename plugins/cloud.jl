@@ -147,7 +147,7 @@ end
 """
 download file from AWS S3
 """
-function downloads3(remoteFile::AbstractString, localFile::AbstractString; awsEnv::AWSEnv = awsEnv)
+function downloads3(remoteFile::AbstractString, localFile::AbstractString)
   # get bucket name and key
   bkt,key = splits3(remoteFile)
   # download s3 file using awscli
@@ -170,7 +170,7 @@ lcname: String, local temporal folder path or local file name
 `Outputs:`
 lcname: String, local file name
 """
-function Base.download(remoteFile::AbstractString, localFile::AbstractString; awsEnv::AWSEnv = awsEnv)
+function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     # directly return if not s3 file
     if !iss3(remoteFile)
         return remoteFile

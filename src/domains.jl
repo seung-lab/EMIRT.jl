@@ -3,13 +3,13 @@
 export Tdjsets, find!, union!, setallroot!, Tdomains
 
 type Tdjsets
-    sets::Array{UInt32}
-    setsz::Array{UInt32}
+    sets::Vector{UInt32}
+    setsz::Vector{UInt32}
 end
 
 # constructor
 function Tdjsets(N)
-    sets = Array{UInt32,1}(UInt32(1):UInt32(N))
+    sets = Array{UInt32,1}(0x00000001:UInt32(N))
     setsz = ones(UInt32, size(sets))
     Tdjsets(sets, setsz)
 end
@@ -58,10 +58,11 @@ end
 
 function setallroot!( djsets::Tdjsets )
     # label all the voxels to root id
-    for vid in UInt32(1):UInt32( length( djsets.sets ) )
+    for vid in 0x00000001:UInt32( length( djsets.sets ) )
         # with patch compress
         # all the voxels will be labeled as root id
         rid = find!(djsets, vid)
+        djsets.setsz[vid] = djsets.setsz[rid]
     end
     return djsets.sets
 end
@@ -133,7 +134,7 @@ function Tdomains{T}(seg::Array{T,3})
     for vid in T(1):N
         lid = seg_flat[vid]
         # initial manual labeled segment id
-        push!(dlszes, Tdlsz(lid=>UInt32(1)) )
+        push!(dlszes, Tdlsz(lid=>0x00000001) )
     end
     Tdomains(dlszes, djsets)
 end
