@@ -11,17 +11,19 @@ I = (I - mean(I)) ./ std(I)
 
 I is a 2D section.
 """
-function normalize_parallel( img::EMImage )
+function normalize( img::EMImage )
     sx,sy,sz = size(img)
     ret = Array(Float32, (sx,sy,sz))
+    gc_enable(false)
     @threads for z in 1:sz
         ret[:,:,z] = Array{Float32, 2}(img[:,:,z]) ./ 256f0
         ret[:,:,z] = (ret[:,:,z].-mean(ret[:,:,z])) ./ std(ret[:,:,z])
     end
+    gc_enable(true)
     ret
 end
 
-function normalize( img::EMImage )
+function normalize_serial( img::EMImage )
     sx,sy,sz = size(img)
     ret = zeros(Float32, (sx,sy,sz))
     for z in 1:sz

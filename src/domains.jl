@@ -132,9 +132,8 @@ function Tdomains{T}(seg::Array{T,3})
     dlszes = Tdlszes([])
     seg_flat = seg[:]
     for vid in T(1):N
-        lid = seg_flat[vid]
         # initial manual labeled segment id
-        push!(dlszes, Tdlsz(lid=>0x00000001) )
+        push!(dlszes, Tdlsz( seg_flat[vid] => 0x00000001) )
     end
     Tdomains(dlszes, djsets)
 end

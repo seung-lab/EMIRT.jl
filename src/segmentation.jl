@@ -43,6 +43,7 @@ function singleton2boundary!{T}( seg::Array{T,3} )
                 end
                 if y<Y && seg[x,y,z]==seg[x,y+1,z]
                     flg[x,y+1,z] = true
+                    continue
                 end
                 if z>1 && seg[x,y,z]==seg[x,y,z-1]
                     continue
@@ -171,6 +172,7 @@ function segid1N!_V3{T}( seg::Array{T,3} )
     # lock of critical section
     critical = SpinLock()
     # assign the map to a new segment
+    gc_enable(false)
     for z in 1:size(seg, 3)
         for y in 1:size(seg, 2)
             @threads for x in 1:size(seg, 1)
@@ -189,6 +191,7 @@ function segid1N!_V3{T}( seg::Array{T,3} )
             end
         end
     end
+    gc_enable(true)
     return N
 end
 ==#

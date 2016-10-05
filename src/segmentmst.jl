@@ -1,6 +1,7 @@
 # require("types.jl")
 # require("evaluate.jl")
 # require("errorcurve.jl")
+using Base.Threads
 
 export merge, merge!, segment, segment!, sgm2error, sgm2ec
 #
@@ -43,9 +44,11 @@ function Base.merge!(sgm::SegMST, thd::AbstractFloat)
     end
 
     # set each segment id as root id
-    for i in eachindex(sgm.segmentation)
+    gc_enable(false)
+    @threads for i in eachindex(sgm.segmentation)
         sgm.segmentation[i] = get(pd, sgm.segmentation[i], sgm.segmentation[i])
     end
+    gc_enable(true)
 
     # update the segmentPairsrogram
     sgm.segmentPairAffinities = sgm.segmentPairAffinities[idxlst]
