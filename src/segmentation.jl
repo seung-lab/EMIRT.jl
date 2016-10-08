@@ -1,4 +1,4 @@
-export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!_V1, segid1N!, segid1N!_V3
+export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
 
 # using Base.Threads
 
@@ -16,7 +16,18 @@ function seg2aff{T}(seg::Array{T,3})
   aff
 end
 
-# label all the singletones as boundary
+"""
+label all the singletones as boundary
+use original segmentation as mask to lable boundary
+some singletons could be created by cropping margins,
+this protected the marginal singletons.
+"""
+function singleton2boundary!{T}( seg::Array{T,3}, ref::Array{T,3} )
+    Threads.@threads for i in eachindex(seg)
+        seg[i] = ref[i]>0x00000000? seg[i]:0x00000000
+    end
+end
+
 function singleton2boundary!{T}( seg::Array{T,3} )
 
     # a flag array indicating whether it is segment
@@ -124,7 +135,7 @@ function relabel_seg{T}( seg::Array{T,3} )
     ret = djs.sets
     ret = reshape(ret, size(seg))
     # mark all the singletons to 0 as boundary
-    singleton2boundary!(ret)
+    singleton2boundary!(ret, seg)
     return ret
 end
 
@@ -355,7 +366,7 @@ alpha2: the alpha value of the segmentation
 Outputs:
 ret: composited RGBA image array
 """
-function seg_overlay_img(img::Array, seg::Array; alpha1::Float32=0.5f0, alpha2::Float32=0.5f0)
+function seg_overlay_img{Ti, Ts}(img::Array{Ti, 3}, seg::Array{Ts,3}; alpha1::Float32=0.5f0, alpha2::Float32=0.5f0)
     @assert size(img)==size(seg)
     @assert alpha1>0.0f0 && alpha1<1.0f0
     @assert alpha2>0.0f0 && alpha2<1.0f0
@@ -374,7 +385,7 @@ function seg_overlay_img(img::Array, seg::Array; alpha1::Float32=0.5f0, alpha2::
     for z in 1:sz
         for y in 1:sy
             for x in 1:sx
-                if seg[x,y,z]==0
+                if seg[x,y,z]==0x00000000
                     # completely transparent in boundary regions
                     ret[x,y,z,1] = fimg[x,y,z]
                     ret[x,y,z,2] = fimg[x,y,z]
@@ -394,7 +405,7 @@ end
 """
 transform segmentation to sgm by making fake mst
 """
-function seg2sgm(seg::Segmentation)
+function seg2segMST(seg::Segmentation)
     # making fake mst
     segmentPairs = zeros(UInt32, (1,2))
     segmentPairs[1] = seg[1]
@@ -403,3 +414,4 @@ function seg2sgm(seg::Segmentation)
 
     return SegMST(seg, segmentPairs, segmentPairAffinities)
 end
+seg2sgm = seg2segMST
