@@ -131,9 +131,10 @@ isAWSS3 = iss3
 """
 whether this file is google storage
 """
-function isGoogleStorage(fname)
+function isgs(fname)
   return ismatch(r"^(gs://)", fname)
 end
+isGoogleStorage = isgs
 
 """
 split a s3 path to bucket name and key
@@ -163,18 +164,15 @@ end
 """
 transfer s3 file to local and return local file name
 `Inputs:`
-awsEnv: AWS awsEnviroment
-s3name: String, s3 file path
-lcname: String, local temporal folder path or local file name
+remoteFile: String, s3 file path
+localFile: String, local temporal folder path or local file name
 
 `Outputs:`
-lcname: String, local file name
+localFile: String, local file name
 """
 function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     # directly return if not s3 file
-    if !iss3(remoteFile)
-        return remoteFile
-    end
+    @assert iss3(remoteFile) || isgs(remoteFile)
 
     if isdir(localFile)
         localFile = joinpath(localFile, basename(remoteFile))
@@ -183,39 +181,40 @@ function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     if isfile(localFile)
         rm(localFile)
     elseif !isdir(dirname(localFile))
-        # create local directory
-        mkdir(dirname(localFile))
+        # create nested local directory
+        @show localFile
+        mkpath(dirname(localFile))
     end
 
-    if isAWSS3(remoteFile)
-      downloads3(remoteFile, localFile)
-      # run(`aws s3 cp $(s3name) $(localFile)`)
-    elseif isGoogleStorage(remoteFile)
-      run(`gsutil -m cp $remoteFile $localFile`)
+    if iss3(remoteFile)
+        downloads3(remoteFile, localFile)
+        # run(`aws s3 cp $(s3name) $(localFile)`)
+    elseif isgs(remoteFile)
+        run(`gsutil -m cp $remoteFile $localFile`)
     end
     return localFile
 end
 
 function upload(localFile::AbstractString, remoteFile::AbstractString)
-  if iss3(remoteFile)
-    # relies on awscli because the upload of AWS.S3 is not really working!
-    # https://github.com/JuliaCloud/AWS.jl/issues/70
-    if isdir(localFile)
-      run(`aws s3 cp --recursive $(localFile) $(remoteFile)`)
+    if iss3(remoteFile)
+        # relies on awscli because the upload of AWS.S3 is not really working!
+        # https://github.com/JuliaCloud/AWS.jl/issues/70
+        if isdir(localFile)
+            run(`aws s3 cp --recursive $(localFile) $(remoteFile)`)
+        else
+            @assert isfile(localFile)
+            run(`aws s3 cp $(localFile) $(remoteFile)`)
+        end
+    elseif isgs(remoteFile)
+        if isdir(localFile)
+            run(`gsutil -m cp -r $localFile $remoteFile`)
+        else
+            @assert isfile(localFile)
+            run(`gsutil -m cp $localFile $remoteFile`)
+        end
     else
-      @assert isfile(localFile)
-      run(`aws s3 cp $(localFile) $(remoteFile)`)
+        error("unsupported remote file link: $(remoteFile)")
     end
-  elseif isGoogleStorage(remoteFile)
-    if isdir(localFile)
-      run(`gsutil -m cp -r $localFile $remoteFile`)
-    else
-      @assert isfile(localFile)
-      run(`gsutil -m cp $localFile $remoteFile`)
-    end
-  else
-    error("unsupported remote file link: $(remoteFile)")
-  end
 end
 
 function sync(awsEnv::AWSEnv, srcDir::AbstractString, dstDir::AbstractString)
