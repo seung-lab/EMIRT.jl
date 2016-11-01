@@ -3,6 +3,7 @@
 # require("types.jl")
 
 export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
+export maskaff!
 
 """
 transform google affinity to seung lab affinity
@@ -175,4 +176,77 @@ function aff2edgelist{T}(aff::Array{T,4}; is_sort::Bool=true)
         @time sort!(elst, rev=true)
     end
     return elst
+end
+
+"""
+    maskaff!(img::EMImage, aff::AffinityMap)
+
+set the affinity edge value to 0 if the connecting voxel is 0 in image
+"""
+function maskaff!(img::EMImage, aff::AffinityMap)
+    @assert size(img) == size(aff[:,:,:,1])
+    # mask the affinity
+    for z in 2:size(img, 3)
+        for y in 1:size(img, 2)
+            for x in 1:size(img, 1)
+                if img[x,y,z]==0x00 || img[x,y,z-1]==0x00
+                    aff[x,y,z,3] = 0.0f0
+                end
+            end
+        end
+    end
+
+    for z in 1:size(img, 3)
+        for y in 2:size(img, 2)
+            for x in 1:size(img, 1)
+                if img[x,y,z]==0x00 || img[x,y-1,z]==0x00
+                    aff[x,y,z,2] = 0.0f0
+                end
+            end
+        end
+    end
+
+    for z in 1:size(img, 3)
+        for y in 1:size(img, 2)
+            for x in 2:size(img, 1)
+                if img[x,y,z]==0x00 || img[x-1,y,z]==0x00
+                    aff[x,y,z,1] = 0.0f0
+                end
+            end
+        end
+    end
+end
+
+function maskaff!(mask::Array{Bool,3}, aff::AffinityMap)
+    @assert size(mask) == size(aff[:,:,:,1])
+    # mask the affinity
+    for z in 2:size(mask, 3)
+        for y in 1:size(mask, 2)
+            for x in 1:size(mask, 1)
+                if mask[x,y,z] || mask[x,y,z-1]
+                    aff[x,y,z,3] = 0.0f0
+                end
+            end
+        end
+    end
+
+    for z in 1:size(mask, 3)
+        for y in 2:size(mask, 2)
+            for x in 1:size(mask, 1)
+                if mask[x,y,z] || mask[x,y-1,z]
+                    aff[x,y,z,2] = 0.0f0
+                end
+            end
+        end
+    end
+
+    for z in 1:size(mask, 3)
+        for y in 1:size(mask, 2)
+            for x in 2:size(mask, 1)
+                if mask[x,y,z] || mask[x-1,y,z]
+                    aff[x,y,z,1] = 0.0f0
+                end
+            end
+        end
+    end
 end
