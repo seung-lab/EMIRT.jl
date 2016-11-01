@@ -3,7 +3,7 @@
 # require("errorcurve.jl")
 using Base.Threads
 
-export merge, merge!, segment, segment!, sgm2error, sgm2ec
+export segment, segment!, sgm2error, sgm2ec
 #
 # """
 # equality
@@ -11,6 +11,10 @@ export merge, merge!, segment, segment!, sgm2error, sgm2ec
 # function Base.is(sgm1::SegMST, sgm2::SegMST)
 #   sgm1.segmentation==sgm2.segmentation && sgm1.segmentPairs==sgm2.segmentPairs && sgm1.segmentPairAffinities==sgm2.segmentPairAffinities
 # end
+
+function Base.ndims(sgm::SegMST)
+    ndims(sgm.segmentation)
+end
 
 """
 merge supervoxels with high affinity
