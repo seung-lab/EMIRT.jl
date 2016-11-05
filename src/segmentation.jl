@@ -135,7 +135,13 @@ function relabel_seg{T}( seg::Array{T,3} )
     ret = djs.sets
     ret = reshape(ret, size(seg))
     # mark all the singletons to 0 as boundary
-    singleton2boundary!(ret, seg)
+    # singleton2boundary!(ret, seg) # this will remove the singletons created by cropping
+    # should use original segmentation as a mask to remove boundary regions
+    Threads.@threads for i in eachindex(seg)
+        if seg[i] == 0x00000000
+            ret[i] = 0x00000000
+        end
+    end
     return ret
 end
 

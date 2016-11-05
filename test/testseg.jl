@@ -34,3 +34,31 @@ println("test modified serial version ...")
 println("test mask singletons ...")
 EMIRT.singleton2boundary!(seg)
 EMIRT.singleton2boundary!(seg, seg)
+
+# test mask singleton code
+println("test removing singletons by masking ...")
+thd = typemax(UInt32) / 0x00000002
+function parallel_threshold(seg)
+    ret1 = deepcopy(seg)
+    Threads.@threads for i in eachindex(seg)
+        if seg[i] < thd
+            ret1[i] = 0x00000000
+        end
+    end
+    return ret1
+end
+
+function serial_threshold(seg)
+    ret2 = deepcopy(seg)
+    for i in eachindex(seg)
+        if seg[i] < thd
+            ret2[i] = 0x00000000
+        end
+    end
+    return ret2
+end
+
+@time ret1 = parallel_threshold(seg)
+@time ret2 = serial_threshold(seg)
+
+@assert all(ret1 .== ret2)
