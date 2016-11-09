@@ -3,7 +3,7 @@
 # require("types.jl")
 
 export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
-export maskaff!
+export maskaff!, mask_margin!
 
 """
 transform google affinity to seung lab affinity
@@ -245,6 +245,21 @@ function maskaff!(mask::Array{Bool,3}, aff::AffinityMap)
             for x in 2:size(mask, 1)
                 if mask[x,y,z] || mask[x-1,y,z]
                     aff[x,y,z,1] = 0.0f0
+                end
+            end
+        end
+    end
+end
+
+function mask_margin!(aff::AffinityMap, maskSize::Vector)
+    sx,sy,sz,sc = size(aff)
+    for z in 1:sz
+        for y in 1:sy
+            for x in 1:sx
+                if  z<=maskSize[3] || z>=sz-maskSize[3] ||
+                    y<=maskSize[2] || y>=sy-maskSize[2] ||
+                    x<=maskSize[1] || x>=sx-maskSize[1]
+                    aff[x,y,z,:] = 0f0
                 end
             end
         end
