@@ -1,5 +1,6 @@
 export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
 
+using Colors, FixedPointNumbers
 # using Base.Threads
 
 # require("domains.jl")
@@ -338,24 +339,20 @@ ret: rgb image array with a size of X x Y x Z x 3, the color dim is the last one
 """
 function seg2rgb(seg::Segmentation)
     # the color dict, key is segment id, value is color
-    dcol = Dict{UInt32, Vector{Float32}}(0x00000000 => [0x00000000, 0x00000000, 0x00000000])
+    dcol = Dict{UInt32, RGB{U8}}(0x00000000 => RGB{U8}(0.0,0.0,0.0))
     # set the boundary color to be black
     # dcol[0] = [0,0,0]
 
     # create RGB image
     sx,sy,sz = size(seg)
-    ret = zeros(Float32, (sx,sy,sz,3))
+    ret = Array(RGB{U8}, (sx,sy,sz))
     # assign random color
-    for z = 1:sz
-        for y = 1:sy
-            for x = 1:sx
-                key = seg[x,y,z]
-                if !haskey(dcol, key)
-                    dcol[key] = rand(Float32,3)
-                end
-                ret[x,y,z,:] = dcol[key]
-            end
+    for i in eachindex(seg)
+        key = seg[i]
+        if !haskey(dcol, key)
+            dcol[key] = rand(RGB{U8})
         end
+        ret[i] = dcol[key]
     end
     return ret
 end
