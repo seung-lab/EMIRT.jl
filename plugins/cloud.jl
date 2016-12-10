@@ -201,6 +201,7 @@ function upload(localFile::AbstractString, remoteFile::AbstractString)
         # https://github.com/JuliaCloud/AWS.jl/issues/70
         if isdir(localFile)
             run(`aws s3 cp --recursive $(localFile) $(remoteFile)`)
+            #run(`aws s3 sync $(localFile) $(remoteFile)`)
         else
             @assert isfile(localFile)
             run(`aws s3 cp $(localFile) $(remoteFile)`)
@@ -208,6 +209,7 @@ function upload(localFile::AbstractString, remoteFile::AbstractString)
     elseif isgs(remoteFile)
         if isdir(localFile)
             run(`gsutil -m cp -r $localFile $remoteFile`)
+            #run(`gsutil -m rsync -r $localFile $remoteFile`)
         else
             @assert isfile(localFile)
             run(`gsutil -m cp $localFile $remoteFile`)
