@@ -20,8 +20,10 @@ function show( seg::Segmentation )
 end
 
 # show raw image
-function show(img::EMImage)
-    view(Image(Array{UFixed{Uint8,8},3}(img), spatialorder=["x","y","z"]))
+function show(arr::EMImage)
+    img = Image(Array{UFixed8,3}(arr), spatialorder=["x","y","z"])
+    @show img
+    view(img)
 end
 
 # show raw image and segmentation combined together

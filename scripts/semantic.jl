@@ -80,7 +80,7 @@ function write_semantic_mask(dir)
 	semantic_mask = create_semantic_mask(indexed_matrix, segment_class)
 	classes = readcsv(class_description_fn)
 	class_id = map(UInt8, classes[:,1])
-	class_description = map(ASCIIString, classes[:,2])
+	class_description = map(String, classes[:,2])
 
     f = h5open(semantic_mask_fn, "w")
     f["main"] = semantic_mask

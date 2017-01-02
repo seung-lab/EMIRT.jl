@@ -1,20 +1,20 @@
-include("types.jl")
+# require("types.jl")
 
 export Tdjsets, find!, union!, setallroot!, Tdomains
 
 type Tdjsets
-    sets::Array{UInt32}
-    setsz::Array{UInt32}
+    sets::Vector{UInt32}
+    setsz::Vector{UInt32}
 end
 
 # constructor
 function Tdjsets(N)
-    sets = Array(1:N)
-    setsz = ones(sets)
+    sets = Array{UInt32,1}(0x00000001:UInt32(N))
+    setsz = ones(UInt32, size(sets))
     Tdjsets(sets, setsz)
 end
 
-function find!( djsets::Tdjsets, vid )
+function find!( djsets::Tdjsets, vid::UInt32 )
     # find root id or domain id
     rid = vid
     while rid != djsets.sets[rid]
@@ -35,7 +35,7 @@ end
 
 # import Base.union! for extention
 import Base.union!
-function union!( djsets::Tdjsets, sid1, sid2 )
+function union!( djsets::Tdjsets, sid1::UInt32, sid2::UInt32 )
     # find root id
     rid1 = find!(djsets, sid1)
     rid2 = find!(djsets, sid2)
@@ -58,10 +58,11 @@ end
 
 function setallroot!( djsets::Tdjsets )
     # label all the voxels to root id
-    for vid in 1:length( djsets.sets )
+    for vid in 0x00000001:UInt32( length( djsets.sets ) )
         # with patch compress
         # all the voxels will be labeled as root id
         rid = find!(djsets, vid)
+        djsets.setsz[vid] = djsets.setsz[rid]
     end
     return djsets.sets
 end
@@ -75,12 +76,12 @@ typealias Tdlsz Dict{UInt32,UInt32}
 compare two domain label sizes to get the number of same voxel pair and different voxel pair
 In default, it is foreground restricted.
 """
-function get_pair_num(dlsz1::Tdlsz, dlsz2::Tdlsz, is_fr = true)
-    n_same_pair = Float32(0)
-    n_diff_pair = Float32(0)
+function get_pair_num(dlsz1::Tdlsz, dlsz2::Tdlsz, is_fr::Bool = true)
+    n_same_pair = UInt32(0)
+    n_diff_pair = UInt32(0)
     for (lid1, sz1) in dlsz1
         for (lid2, sz2) in dlsz2
-            if is_fr && lid2==0
+            if is_fr && lid2==UInt32(0)
                 continue
             end
             if lid1 == lid2
@@ -121,25 +122,24 @@ type Tdomains
 end
 
 # constructor function
-function Tdomains(lbl::Segmentation)
+function Tdomains{T}(seg::Array{T,3})
     # number of voxels
-    N = length(lbl)
+    N = T( length(seg) )
     # initialize the disjoint sets
     djsets = Tdjsets( N )
 
     # initialize the dms as an empty vector/list/1D array
     dlszes = Tdlszes([])
-    lbl_flat = lbl[:]
-    for vid in 1:N
-        lid = lbl_flat[vid]
+    seg_flat = seg[:]
+    for vid in T(1):N
         # initial manual labeled segment id
-        push!(dlszes, Tdlsz(lid=>1) )
+        push!(dlszes, Tdlsz( seg_flat[vid] => 0x00000001) )
     end
     Tdomains(dlszes, djsets)
 end
 
 # find the corresponding domain of a voxel
-function find!(dms::Tdomains, vid)
+function find!(dms::Tdomains, vid::UInt32)
     rid = find!(dms.djsets, vid)
     dlsz = dms.dlszes[ rid ]
     return rid, dlsz

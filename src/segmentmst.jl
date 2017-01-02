@@ -1,8 +1,9 @@
-include("types.jl")
-include("evaluate.jl")
-include("errorcurve.jl")
+# require("types.jl")
+# require("evaluate.jl")
+# require("errorcurve.jl")
+using Base.Threads
 
-export merge, merge!, segment, segment!, sgm2error, sgm2ec
+export segment, segment!, sgm2error, sgm2ec
 #
 # """
 # equality
@@ -10,6 +11,10 @@ export merge, merge!, segment, segment!, sgm2error, sgm2ec
 # function Base.is(sgm1::SegMST, sgm2::SegMST)
 #   sgm1.segmentation==sgm2.segmentation && sgm1.segmentPairs==sgm2.segmentPairs && sgm1.segmentPairAffinities==sgm2.segmentPairAffinities
 # end
+
+function Base.ndims(sgm::SegMST)
+    ndims(sgm.segmentation)
+end
 
 """
 merge supervoxels with high affinity
@@ -43,9 +48,11 @@ function Base.merge!(sgm::SegMST, thd::AbstractFloat)
     end
 
     # set each segment id as root id
-    for i in eachindex(sgm.segmentation)
+    gc_enable(false)
+    @threads for i in eachindex(sgm.segmentation)
         sgm.segmentation[i] = get(pd, sgm.segmentation[i], sgm.segmentation[i])
     end
+    gc_enable(true)
 
     # update the segmentPairsrogram
     sgm.segmentPairAffinities = sgm.segmentPairAffinities[idxlst]
