@@ -1,6 +1,11 @@
-export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!, add_seg_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
+export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!
+export add_seg_boundary!, seg2rgb, seg_overlay_img, seg_overlay_img!
+export seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
 
 using Colors, FixedPointNumbers
+
+const UFIXED8_HALF  = UFixed{UInt8,8}(0.5)
+const UFIXED8_ONE   = UFixed{UInt8,8}(1.0)
 # using Base.Threads
 
 # require("domains.jl")
@@ -344,8 +349,7 @@ function seg2rgb(seg::Segmentation)
     # dcol[0] = [0,0,0]
 
     # create RGB image
-    sx,sy,sz = size(seg)
-    ret = Array(RGB{U8}, (sx,sy,sz))
+    ret = similar(seg, RGB{U8})
     # assign random color
     for i in eachindex(seg)
         key = seg[i]
@@ -369,37 +373,35 @@ alpha2: the alpha value of the segmentation
 Outputs:
 ret: composited RGBA image array
 """
-function seg_overlay_img{Ti, Ts}(img::Array{Ti, 3}, seg::Array{Ts,3}; alpha1::Float32=0.5f0, alpha2::Float32=0.5f0)
+function seg_overlay_img{Ts}(img::Array{UInt8, 3}, seg::Array{Ts,3};
+                                alpha1::UFixed8 = UFIXED8_HALF,
+                                alpha2::UFixed8 = UFIXED8_HALF )
     @assert size(img)==size(seg)
     @assert alpha1>0.0f0 && alpha1<1.0f0
     @assert alpha2>0.0f0 && alpha2<1.0f0
-    sx,sy,sz = size(img)
 
     # initialize the returned RGBA image
-    ret = zeros(Float32,(sx,sy,sz,3))
+    # ret = Array{RGB{U8},3}(sx,sy,sz)
+    ret = similar(img, RGB{U8})
 
     # colorful segmentation image
     cseg = seg2rgb(Segmentation(seg))
 
     # transform img to 0-1
-    fimg = Array{Float32,3}(img)
+    fimg = reinterpret(UFixed8, img)
     fimg = ( fimg-minimum(fimg) ) ./ (maximum(fimg) - minimum(fimg))
 
-    for z in 1:sz
-        for y in 1:sy
-            for x in 1:sx
-                if seg[x,y,z]==0x00000000
-                    # completely transparent in boundary regions
-                    ret[x,y,z,1] = fimg[x,y,z]
-                    ret[x,y,z,2] = fimg[x,y,z]
-                    ret[x,y,z,3] = fimg[x,y,z]
-                else
-                    # only composite in non-boundary regions
-                    ret[x,y,z,1] = ( fimg[x,y,z]*alpha1 + cseg[x,y,z,1]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
-                    ret[x,y,z,2] = ( fimg[x,y,z]*alpha1 + cseg[x,y,z,2]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
-                    ret[x,y,z,3] = ( fimg[x,y,z]*alpha1 + cseg[x,y,z,3]*alpha2*(1-alpha1) ) / (alpha1+alpha2*(1-alpha1))
-                end
-            end
+    # Threads.@threads for z in 1:sz
+    # # for z in 1:sz
+    #     for y in 1:sy
+    #         for x in 1:sx
+    Threads.@threads for i in eachindex( img )
+        if seg[i]==0x00000000
+            ret[i] = RGB{U8}(fimg[i], fimg[i], fimg[i])
+        else
+            ret[i] = RGB{U8}(   (fimg[i]*alpha1 + cseg[i].r * alpha2*(UFIXED8_ONE-alpha1) ) / (alpha1+alpha2*(UFIXED8_ONE-alpha1)),
+                                (fimg[i]*alpha1 + cseg[i].g * alpha2*(UFIXED8_ONE-alpha1) ) / (alpha1+alpha2*(UFIXED8_ONE-alpha1)),
+                                (fimg[i]*alpha1 + cseg[i].b * alpha2*(UFIXED8_ONE-alpha1) ) / (alpha1+alpha2*(UFIXED8_ONE-alpha1)) )
         end
     end
     return ret

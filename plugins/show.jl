@@ -7,16 +7,18 @@ import Gadfly: plot
 
 using FixedPointNumbers
 
-include("../src/segmentation.jl")
-include("../src/evaluate.jl")
-include("../src/errorcurve.jl")
+# include("../src/segmentation.jl")
+# include("../src/evaluate.jl")
+# include("../src/errorcurve.jl")
+using EMIRT
 include("utils.jl")
 
 # show segmentationx
 function show( seg::Segmentation )
     @assert ndims(seg)==3
     rgbseg = seg2rgb(seg)
-    view(Image(rgbseg, colordim=4, spatialorder=["x","y","z"]))
+    @show size(rgbseg)
+    view(Image(rgbseg, spatialorder=["x","y","z"]))
 end
 
 # show raw image
@@ -30,7 +32,7 @@ end
 function show(img::EMImage, seg::Segmentation)
     # combined rgb image stack
     cmb = seg_overlay_img(img, seg)
-    imgc, imgslice = view(Image(cmb, colordim=4, spatialorder=["x","y","z"]))
+    imgc, imgslice = view(Image(cmb, spatialorder=["x","y","z"]))
     # return imgc and imgslice for visualization in a script
     # https://github.com/timholy/ImageView.jl#calling-view-from-a-script-file
     return imgc, imgslice

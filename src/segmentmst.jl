@@ -58,7 +58,7 @@ function Base.merge!(sgm::SegMST, thd::AbstractFloat)
     sgm.segmentPairAffinities = sgm.segmentPairAffinities[idxlst]
     sgm.segmentPairs = sgm.segmentPairs[:, idxlst]
 
-    return sgm
+    return sgm.segmentation
 end
 
 function Base.merge(sgm::SegMST, thd::AbstractFloat)
