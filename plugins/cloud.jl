@@ -208,8 +208,8 @@ function upload(localFile::AbstractString, remoteFile::AbstractString)
         end
     elseif isgs(remoteFile)
         if isdir(localFile)
-            run(`gsutil -m cp -r $localFile $remoteFile`)
-            #run(`gsutil -m rsync -r $localFile $remoteFile`)
+            # run(`gsutil -m cp -r $localFile $remoteFile`)
+            run(`gsutil -m rsync -r $localFile $remoteFile`)
         else
             @assert isfile(localFile)
             run(`gsutil -m cp $localFile $remoteFile`)
