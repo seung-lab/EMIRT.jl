@@ -9,8 +9,8 @@ println("Usage: julia compare_img_seg.jl /path/of/img.h5 /path/of/seg.h5")
 fimg = ARGS[1]
 fseg = ARGS[2]
 
-img = readimg(fimg)
-seg = readseg(fseg)
+img = readimg(fimg)[:,:,1:64]
+seg = readseg(fseg)[:,:,1:64]
 
 include(joinpath(Pkg.dir(), "EMIRT/plugins/show.jl"))
 

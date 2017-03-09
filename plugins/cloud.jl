@@ -45,7 +45,7 @@ awsEnv: AWS awsEnviroment
 qurl: String, url of queue or queue name
 """
 function fetchSQSmessage(awsEnv::AWSEnv, qurl::AbstractString)
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
       # this is not a url, should be a queue name
       qurl = get_qurl(awsEnv, qurl)
@@ -64,7 +64,7 @@ take SQS message from queue
 will delete mssage after fetching
 """
 function takeSQSmessage!(awsEnv::AWSEnv, qurl::AbstractString="")
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
       # this is not a url, should be a queue name
       qurl = get_qurl(awsEnv, qurl)
@@ -83,9 +83,9 @@ end
 delete SQS message
 """
 function deleteSQSmessage!(awsEnv::AWSEnv, msgHandle::AbstractString, qurl::AbstractString)
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
-      qurl = get_qurl(awsEnv, ASCIIString(qurl))
+      qurl = get_qurl(awsEnv, String(qurl))
   end
   resp = DeleteMessage(awsEnv, queueUrl=qurl, receiptHandle=msgHandle)
   if resp.http_code < 299
@@ -99,7 +99,7 @@ function deleteSQSmessage!(msgHandle::AbstractString, qurl::AbstractString)
 end
 
 function deleteSQSmessage!(awsEnv::AWSEnv, msg::AWS.SQS.MessageType, qurl::AbstractString="")
-    deleteSQSmessage!(awsEnv, msg.receiptHandle, ASCIIString(qurl))
+    deleteSQSmessage!(awsEnv, msg.receiptHandle, String(qurl))
 end
 function deleteSQSmessage!(msg::AWS.SQS.MessageType, qurl::AbstractString)
   deleteSQSmessage!(awsEnv, msg, qurl)
@@ -109,12 +109,12 @@ end
 put a task to SQS queue
 """
 function sendSQSmessage(awsEnv::AWSEnv, qurl::AbstractString, msg::AbstractString)
-  qurl = ASCIIString(qurl)
+  qurl = String(qurl)
   if !contains(qurl, "https://sqs.")
-    # AWS/src/sqs_operations.jl:62 requires ASCIIString
-    qurl = get_qurl(awsEnv, ASCIIString(qurl))
+    # AWS/src/sqs_operations.jl:62 requires String
+    qurl = get_qurl(awsEnv, String(qurl))
   end
-  resp = SendMessage(awsEnv; queueUrl=ASCIIString(qurl), delaySeconds=0, messageBody=msg)
+  resp = SendMessage(awsEnv; queueUrl=String(qurl), delaySeconds=0, messageBody=msg)
 end
 function sendSQSmessage(qurl::AbstractString, msg::AbstractString)
   sendSQSmessage(awsEnv, qurl, msg)
@@ -131,9 +131,10 @@ isAWSS3 = iss3
 """
 whether this file is google storage
 """
-function isGoogleStorage(fname)
+function isgs(fname)
   return ismatch(r"^(gs://)", fname)
 end
+isGoogleStorage = isgs
 
 """
 split a s3 path to bucket name and key
@@ -141,7 +142,7 @@ split a s3 path to bucket name and key
 function splits3(path::AbstractString)
     path = replace(path, "s3://", "")
     bkt, key = split(path, "/", limit = 2)
-    return ASCIIString(bkt), ASCIIString(key)
+    return String(bkt), String(key)
 end
 
 """
@@ -163,18 +164,15 @@ end
 """
 transfer s3 file to local and return local file name
 `Inputs:`
-awsEnv: AWS awsEnviroment
-s3name: String, s3 file path
-lcname: String, local temporal folder path or local file name
+remoteFile: String, s3 file path
+localFile: String, local temporal folder path or local file name
 
 `Outputs:`
-lcname: String, local file name
+localFile: String, local file name
 """
 function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     # directly return if not s3 file
-    if !iss3(remoteFile)
-        return remoteFile
-    end
+    @assert iss3(remoteFile) || isgs(remoteFile)
 
     if isdir(localFile)
         localFile = joinpath(localFile, basename(remoteFile))
@@ -183,39 +181,42 @@ function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     if isfile(localFile)
         rm(localFile)
     elseif !isdir(dirname(localFile))
-        # create local directory
-        mkdir(dirname(localFile))
+        # create nested local directory
+        @show localFile
+        mkpath(dirname(localFile))
     end
 
-    if isAWSS3(remoteFile)
-      downloads3(remoteFile, localFile)
-      # run(`aws s3 cp $(s3name) $(localFile)`)
-    elseif isGoogleStorage(remoteFile)
-      run(`gsutil -m cp $remoteFile $localFile`)
+    if iss3(remoteFile)
+        downloads3(remoteFile, localFile)
+        # run(`aws s3 cp $(s3name) $(localFile)`)
+    elseif isgs(remoteFile)
+        run(`gsutil -m cp $remoteFile $localFile`)
     end
     return localFile
 end
 
 function upload(localFile::AbstractString, remoteFile::AbstractString)
-  if iss3(remoteFile)
-    # relies on awscli because the upload of AWS.S3 is not really working!
-    # https://github.com/JuliaCloud/AWS.jl/issues/70
-    if isdir(localFile)
-      run(`aws s3 cp --recursive $(localFile) $(remoteFile)`)
+    if iss3(remoteFile)
+        # relies on awscli because the upload of AWS.S3 is not really working!
+        # https://github.com/JuliaCloud/AWS.jl/issues/70
+        if isdir(localFile)
+            run(`aws s3 cp --recursive $(localFile) $(remoteFile)`)
+            #run(`aws s3 sync $(localFile) $(remoteFile)`)
+        else
+            @assert isfile(localFile)
+            run(`aws s3 cp $(localFile) $(remoteFile)`)
+        end
+    elseif isgs(remoteFile)
+        if isdir(localFile)
+            # run(`gsutil -m cp -r $localFile $remoteFile`)
+            run(`gsutil -m rsync -r $localFile $remoteFile`)
+        else
+            @assert isfile(localFile)
+            run(`gsutil -m cp $localFile $remoteFile`)
+        end
     else
-      @assert isfile(localFile)
-      run(`aws s3 cp $(localFile) $(remoteFile)`)
+        error("unsupported remote file link: $(remoteFile)")
     end
-  elseif isGoogleStorage(remoteFile)
-    if isdir(localFile)
-      run(`gsutil -m cp -r $localFile $remoteFile`)
-    else
-      @assert isfile(localFile)
-      run(`gsutil -m cp $localFile $remoteFile`)
-    end
-  else
-    error("unsupported remote file link: $(remoteFile)")
-  end
 end
 
 function sync(awsEnv::AWSEnv, srcDir::AbstractString, dstDir::AbstractString)
@@ -250,7 +251,7 @@ function s3_list_objects(awsEnv::AWSEnv, bkt::AbstractString, prefix::AbstractSt
     bucket_options = AWS.S3.GetBucketOptions(delimiter="/", prefix=prefix)
     resp = AWS.S3.get_bkt(awsEnv, bkt; options=bucket_options)
 
-    keylst = Vector{ASCIIString}()
+    keylst = Vector{String}()
     for content in resp.obj.contents
         fname = replace(content.key, prefix, "")
         if fname!="" && ismatch(re, fname)

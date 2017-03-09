@@ -3,7 +3,9 @@ using FileIO
 
 import FileIO: save
 
-export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff, issgmfile, readsgm, savesgm, readec, saveec, readecs, saveecs, save
+export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff
+export issgmfile, readsgm, savesgm, readec, saveec, readecs, saveecs, save
+export lzma
 
 function imread(fname::AbstractString)
     print("reading file: $(fname) ......")
@@ -280,7 +282,7 @@ end
 function readec(f::HDF5.HDF5Group)
     ec = ScoreCurve()
     for k in names(f)
-        ec[ASCIIString(k)] = read(f[k])
+        ec[String(k)] = read(f[k])
     end
     return ec
 end
@@ -321,4 +323,19 @@ function save(fname::AbstractString, ecs::ScoreCurves)
 end
 function saveecs(fecs::AbstractString, ecs::ScoreCurves)
     save(fecs, ecs)
+end
+
+"""
+    lzma(writable::Any, output::IO)
+
+Writes lzma compressed object into the given output stream.
+"""
+function lzma(writable::Any, output::IO)
+    input = Pipe()
+
+    lzma_command = `lzma --compress --extreme -9 -f -k --stdout`
+    process = spawn(pipeline(lzma_command, stdout = output, stdin = input))
+
+    write(input, writable)
+    close(input.in)
 end

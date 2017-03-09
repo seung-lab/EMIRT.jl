@@ -3,9 +3,9 @@ using Watershed
 
 export evaluate, evaluate_by_patch
 
-include("affinitymap.jl")
-include("segmentation.jl")
-include("domains.jl")
+# require("affinitymap.jl")
+# require("segmentation.jl")
+# require("domains.jl")
 
 # use a log version which is faster and more accurate
 import Base.Math.JuliaLibm.log
