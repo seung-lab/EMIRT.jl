@@ -3,6 +3,23 @@ include("segmentation.jl")
 include("types.jl")
 
 export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
+export downsample 
+
+function downsample(aff::AffinityMap; scale::Union{Vector, Tuple} = (2,2,1,1))
+    outSize = map(div, size(aff), scale)
+    out = similar(aff, (outSize...)) 
+    for z in 1:outSize[3]
+        for y in 1:outSize[2]
+            for x in 1:outSize[1]
+                out[x,y,z,1:3] = mean(aff[(x-1)*scale[1]+1:x*scale[1],
+                                          (y-1)*scale[2]+1:y*scale[2],
+                                          (z-1)*scale[3]+1:z*scale[3],
+                                          1:3])
+            end
+        end
+    end
+    return out
+end            
 
 """
 transform google affinity to seung lab affinity

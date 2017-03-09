@@ -1,5 +1,6 @@
 export seg2aff, markbdr!, relabel_seg, reassign_segid1N!, add_lbl_boundary!, seg2rgb, seg_overlay_img!, seg2sgm, segid1N!
-
+using Colors
+using FixedPointNumbers
 include("domains.jl")
 
 include("types.jl")
@@ -292,22 +293,22 @@ ret: rgb image array with a size of X x Y x Z x 3, the color dim is the last one
 """
 function seg2rgb(seg::Segmentation)
     # the color dict, key is segment id, value is color
-    dcol = Dict{UInt32, Vector{Float32}}()
+    dcol = Dict{UInt32, RGB{N0f8}}()
     # set the boundary color to be black
-    dcol[0] = [0,0,0]
+    dcol[0] = RGB{N0f8}(0,0,0)
 
     # create RGB image
     sx,sy,sz = size(seg)
-    ret = zeros(Float32, (sx,sy,sz,3))
+    ret = Array(RGB{N0f8}, (sx,sy,sz))
     # assign random color
     for z = 1:sz
         for y = 1:sy
             for x = 1:sx
                 key = seg[x,y,z]
                 if !haskey(dcol, key)
-                    dcol[key] = rand(Float32,3)
+                    dcol[key] = rand(RGB{N0f8})
                 end
-                ret[x,y,z,:] = dcol[key]
+                ret[x,y,z] = dcol[key]
             end
         end
     end
