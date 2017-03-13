@@ -2,6 +2,7 @@ using EMIRT
 using AWS
 using AWS.SQS
 using AWS.S3
+using Memoize
 
 """
 build aws awsEnvariament
@@ -30,11 +31,8 @@ end
 # build global
 global const awsEnv = build_awsEnv()
 
-
-"""
-get the url of queue
-"""
-function get_qurl(awsEnv::AWSEnv, qname::AbstractString="spipe-tasks")
+# RetryGetQueueUrl = retry(GetQueueUrl; n = 10)
+@memoize function get_qurl(awsEnv::AWSEnv, qname::AbstractString="spipe-tasks")
     return GetQueueUrl(awsEnv; queueName=qname).obj.queueUrl
 end
 
