@@ -6,8 +6,8 @@ export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!
 export add_seg_boundary!, seg2rgb, seg_overlay_img, seg_overlay_img!
 export seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
 
-const UFIXED8_HALF  = UFixed{UInt8,8}(0.5)
-const UFIXED8_ONE   = UFixed{UInt8,8}(1.0)
+const NORMED8_HALF  = Normed{UInt8,8}(0.5)
+const NORMED8_ONE   = Normed{UInt8,8}(1.0)
 # using Base.Threads
 
 # require("domains.jl")
@@ -382,8 +382,8 @@ Outputs:
 ret: composited RGBA image array
 """
 function seg_overlay_img{Ts}(img::Array{UInt8, 3}, seg::Array{Ts,3};
-                                alpha1::UFixed8 = UFIXED8_HALF,
-                                alpha2::UFixed8 = UFIXED8_HALF )
+                                alpha1::Normed = NORMED8_HALF,
+                                alpha2::Normed = NORMED8_HALF )
     @assert size(img)==size(seg)
     @assert alpha1>0.0f0 && alpha1<1.0f0
     @assert alpha2>0.0f0 && alpha2<1.0f0
@@ -396,7 +396,7 @@ function seg_overlay_img{Ts}(img::Array{UInt8, 3}, seg::Array{Ts,3};
     cseg = seg2rgb(Segmentation(seg))
 
     # transform img to 0-1
-    fimg = reinterpret(UFixed8, img)
+    fimg = reinterpret(N0f8, img)
     fimg = ( fimg-minimum(fimg) ) ./ (maximum(fimg) - minimum(fimg))
 
     # Threads.@threads for z in 1:sz
@@ -407,9 +407,9 @@ function seg_overlay_img{Ts}(img::Array{UInt8, 3}, seg::Array{Ts,3};
         if seg[i]==0x00000000
             ret[i] = RGB{U8}(fimg[i], fimg[i], fimg[i])
         else
-            ret[i] = RGB{U8}(   (fimg[i]*alpha1 + cseg[i].r * alpha2*(UFIXED8_ONE-alpha1) ) / (alpha1+alpha2*(UFIXED8_ONE-alpha1)),
-                                (fimg[i]*alpha1 + cseg[i].g * alpha2*(UFIXED8_ONE-alpha1) ) / (alpha1+alpha2*(UFIXED8_ONE-alpha1)),
-                                (fimg[i]*alpha1 + cseg[i].b * alpha2*(UFIXED8_ONE-alpha1) ) / (alpha1+alpha2*(UFIXED8_ONE-alpha1)) )
+            ret[i] = RGB{U8}(   (fimg[i]*alpha1 + cseg[i].r * alpha2*(NORMED8_ONE-alpha1) ) / (alpha1+alpha2*(NORMED8_ONE-alpha1)),
+                                (fimg[i]*alpha1 + cseg[i].g * alpha2*(NORMED8_ONE-alpha1) ) / (alpha1+alpha2*(NORMED8_ONE-alpha1)),
+                                (fimg[i]*alpha1 + cseg[i].b * alpha2*(NORMED8_ONE-alpha1) ) / (alpha1+alpha2*(NORMED8_ONE-alpha1)) )
         end
     end
     return ret
