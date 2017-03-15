@@ -3,6 +3,7 @@ using AWS
 using AWS.SQS
 using AWS.S3
 using Memoize
+using Retry
 
 """
 build aws awsEnvariament
@@ -112,7 +113,11 @@ function sendSQSmessage(awsEnv::AWSEnv, qurl::AbstractString, msg::AbstractStrin
     # AWS/src/sqs_operations.jl:62 requires String
     qurl = get_qurl(awsEnv, String(qurl))
   end
-  resp = SendMessage(awsEnv; queueUrl=String(qurl), delaySeconds=0, messageBody=msg)
+  @repeat 3 try
+    resp = SendMessage(awsEnv; queueUrl=String(qurl), delaySeconds=0, messageBody=msg)
+    catch e
+        @show e 
+    end
 end
 function sendSQSmessage(qurl::AbstractString, msg::AbstractString)
   sendSQSmessage(awsEnv, qurl, msg)
