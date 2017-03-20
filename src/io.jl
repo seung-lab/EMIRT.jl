@@ -5,7 +5,6 @@ import FileIO: save
 
 export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff
 export issgmfile, readsgm, savesgm, readec, saveec, readecs, saveecs, save
-export lzma
 
 function imread(fname::AbstractString)
     print("reading file: $(fname) ......")
@@ -325,17 +324,3 @@ function saveecs(fecs::AbstractString, ecs::ScoreCurves)
     save(fecs, ecs)
 end
 
-"""
-    lzma(writable::Any, output::IO)
-
-Writes lzma compressed object into the given output stream.
-"""
-function lzma(writable::Any, output::IO)
-    input = Pipe()
-
-    lzma_command = `lzma --compress --extreme -9 -f -k --stdout`
-    process = spawn(pipeline(lzma_command, stdout = output, stdin = input))
-
-    write(input, writable)
-    close(input.in)
-end
