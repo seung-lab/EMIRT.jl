@@ -190,8 +190,8 @@ function Base.download(remoteFile::AbstractString, localFile::AbstractString)
     end
 
     if iss3(remoteFile)
-        downloads3(remoteFile, localFile)
-        # run(`aws s3 cp $(s3name) $(localFile)`)
+        #downloads3(remoteFile, localFile)
+        run(`aws s3 cp $(remoteFile) $(localFile)`)
     elseif isgs(remoteFile)
         run(`gsutil -m cp $remoteFile $localFile`)
     end
