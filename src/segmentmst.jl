@@ -12,6 +12,10 @@ export segment, segment!, sgm2error, sgm2ec
 #   sgm1.segmentation==sgm2.segmentation && sgm1.segmentPairs==sgm2.segmentPairs && sgm1.segmentPairAffinities==sgm2.segmentPairAffinities
 # end
 
+function Base.size(sgm::SegMST)
+    return size( sgm.segmentation )
+end 
+
 function Base.ndims(sgm::SegMST)
     ndims(sgm.segmentation)
 end

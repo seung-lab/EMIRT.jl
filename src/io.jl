@@ -1,7 +1,7 @@
 using HDF5
-using FileIO
+import FileIO
 
-import FileIO: save
+#import FileIO: save
 
 export imread, imsave, readimg, saveimg, readseg, saveseg, readaff, saveaff
 export issgmfile, readsgm, savesgm, readec, saveec, readecs, saveecs, save
@@ -14,7 +14,7 @@ function imread(fname::AbstractString)
         return ret
     else
         # handled by FileIO
-        return load(fname)
+        return FileIO.load(fname)
     end
 end
 
@@ -30,7 +30,7 @@ function imsave(fname::AbstractString, vol::Array, is_overwrite=true)
         h5write(fname, "/main", vol)
     else
         # handled by FileIO
-        save(fname, vol)
+        FileIO.save(fname, vol)
     end
     println("done!")
 end
@@ -253,7 +253,7 @@ save segmentation with segmentPairsrogram
 """
 function save(fsgm::AbstractString, sgm::SegMST)
     f = h5open(fsgm, "w")
-    f["segmentation"] = sgm.segmentation
+    f["segmentation", "chunk", (64,64,8), "shuffle", (), "deflate", 3] = sgm.segmentation
     f["segmentPairs"] = sgm.segmentPairs
     f["segmentPairAffinities"] = sgm.segmentPairAffinities
     close(f)
