@@ -2,12 +2,11 @@ language: julia
 os: linux
 
 julia:
-        - 0.4
+        - 0.5
 notifications:
         email: false
+git:
+    depth: 999999
 
-install:
-        - julia -e 'Pkg.add("HDF5"); Pkg.add("FileIO")'
-        
 script:
         - julia -e 'Pkg.clone(pwd()); Pkg.test("EMIRT")'
