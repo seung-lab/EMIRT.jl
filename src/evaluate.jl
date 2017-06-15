@@ -1,5 +1,4 @@
 using HDF5
-using Watershed
 
 export evaluate, evaluate_by_patch
 
