@@ -12,5 +12,4 @@ include("segmentation.jl")
 include("segmentmst.jl")
 include("evaluate.jl")
 include("parser.jl")
-include("errorcurve.jl")
 end

@@ -1,5 +1,5 @@
 
-export EMImage, Segmentation, AffinityMap, ParamDict, SegMST, SegmentPairs, SegmentPairAffinities, ScoreCurve, ScoreCurves
+export EMImage, Segmentation, AffinityMap, ParamDict, SegMST, SegmentPairs, SegmentPairAffinities
 export Timg, Tseg, Tsgm, Tec, Tecs
 
 # type of raw image
@@ -24,16 +24,8 @@ type SegMST
     segmentPairAffinities::SegmentPairAffinities
 end
 
-# score curve
-typealias ScoreCurve Dict{Symbol, Vector{Float32}}
-# score curves
-typealias ScoreCurves Dict{Symbol, ScoreCurve}
-
-
 # defined for backward compatibility
 typealias Timg  EMImage
 typealias Tseg  Segmentation
 typealias Taff  AffinityMap
 typealias Tsgm  SegMST
-typealias Tec   ScoreCurve
-typealias Tecs  ScoreCurves

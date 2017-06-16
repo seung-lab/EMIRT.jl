@@ -3,8 +3,8 @@ info("-----------test evaluate----------")
 using EMIRT
 
 # get test data
-aff = imread("../assets/aff.h5")
-lbl = imread("../assets/lbl.h5")
+aff = imread(joinpath(dirname(@__FILE__),"../assets/aff.h5"))
+lbl = imread(joinpath(dirname(@__FILE__),"../assets/lbl.h5"))
 
 lbl = Array{UInt32,3}(lbl)
 
