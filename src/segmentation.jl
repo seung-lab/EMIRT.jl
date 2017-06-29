@@ -5,6 +5,7 @@ include("domains.jl")
 export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!
 export add_seg_boundary!, seg2rgb, seg_overlay_img, seg_overlay_img!
 export seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
+export downsample
 
 const NORMED8_HALF  = Normed{UInt8,8}(0.5)
 const NORMED8_ONE   = Normed{UInt8,8}(1.0)
@@ -181,6 +182,16 @@ function segid1N!{T}( seg::Array{T,3} )
     return N
 end
 
+"""
+downsampling segmentation by simply sampling voxels
+"""
+function downsample( seg::Union{Array{UInt32,3},Array{UInt64,3}}; 
+                    scale::Vector{Int} = [2,2,1])
+    start = map(x->cld(x,2), scale)
+    seg[start[1]:scale[1]:end, start[2]:scale[2]:end, start[3]:scale[3]:end]
+end 
+
+    
 #==
 """
 multiple threads version runs without stop, used all the cpu!

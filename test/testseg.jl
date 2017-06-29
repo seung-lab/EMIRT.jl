@@ -1,6 +1,15 @@
 using EMIRT
 info("--------- test segmentation ---------")
 
+println("test segmentation downsampling")
+a = reshape(Vector{UInt32}(1:27), (3,3,3))
+b = downsample(a; scale=[3,3,3])
+@show a
+@show b
+@assert size(b) == (1,1,1) && b[1] == 0x0000000e
+
+
+println("create random segmentation for tests")
 seg = rand(UInt32, 516,516,64)
 
 Threads.@threads for i in eachindex(seg)
@@ -60,5 +69,6 @@ end
 
 @time ret1 = parallel_threshold(seg)
 @time ret2 = serial_threshold(seg)
-
 @assert all(ret1 .== ret2)
+
+

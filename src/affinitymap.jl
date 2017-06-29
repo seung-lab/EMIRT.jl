@@ -8,6 +8,7 @@ export maskaff!, mask_margin!
 
 
 function downsample(aff::AffinityMap; scale::Union{Vector, Tuple} = (2,2,1,1))
+    println("downsampling affinitymap with averaging")
     outSize = map(div, size(aff), scale)
     out = similar(aff, (outSize...)) 
     for z in 1:outSize[3]
