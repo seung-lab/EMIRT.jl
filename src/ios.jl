@@ -1,3 +1,6 @@
+module IOs
+
+using ..Types
 using HDF5
 import FileIO
 
@@ -266,3 +269,4 @@ function savesgm(fsgm::AbstractString, sgm)
     save(fsgm, sgm)
 end
 
+end # end of module

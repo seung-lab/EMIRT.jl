@@ -1,4 +1,4 @@
-# require("types.jl")
+module Domains
 
 export Tdjsets, find!, union!, setallroot!, Tdomains
 
@@ -171,3 +171,5 @@ function union!(dms::Tdomains, vid1::UInt32, vid2::UInt32)
 
     union!(dms, rid1, dlsz1, rid2, dlsz2)
 end
+
+end # end of module

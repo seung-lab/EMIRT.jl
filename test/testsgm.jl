@@ -1,7 +1,10 @@
-info("----------test sgm-------------")
 using EMIRT
+using EMIRT.SegmentMST
+using EMIRT.IOs
 using Watershed
+using Base.Test
 
+@testset "test segmentation with mst" begin 
 aff = readaff(joinpath(dirname(@__FILE__),"../assets/piriform.aff.h5"))
 
 seg, rg = watershed(aff; is_threshold_relative=true);
@@ -15,3 +18,5 @@ println("merge mst: ")
 # include(joinpath(Pkg.dir(), "EMIRT/plugins/emshow.jl"))
 # show(sgm.seg)
 #save(joinpath(dirname(@__FILE__),"../assets/sgm.h5", sgm)
+
+end # end of test set 

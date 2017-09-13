@@ -1,18 +1,17 @@
+module Segmentations
+
+using ..Types
+using ..Domains 
 using Colors
 using FixedPointNumbers
-include("domains.jl")
 
-export seg2aff, singleton2boundary!, relabel_seg, reassign_segid1N!
+export seg2aff, singleton2boundary!, relabel_seg 
 export add_seg_boundary!, seg2rgb, seg_overlay_img, seg_overlay_img!
-export seg2sgm, seg2segMST, segid1N!_V1, segid1N!, segid1N!_V3
+export seg2sgm, seg2segMST, segid1N!, segid1N!_V3
 export downsample
 
 const NORMED8_HALF  = Normed{UInt8,8}(0.5)
 const NORMED8_ONE   = Normed{UInt8,8}(1.0)
-# using Base.Threads
-
-# require("domains.jl")
-# require("types.jl")
 
 """
 construct affinity map from segmentation
@@ -439,3 +438,5 @@ function seg2segMST(seg::Segmentation)
     return SegMST(seg, segmentPairs, segmentPairAffinities)
 end
 seg2sgm = seg2segMST
+
+end # end of module

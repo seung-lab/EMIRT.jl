@@ -1,3 +1,4 @@
+module Types
 
 export EMImage, Segmentation, AffinityMap, ParamDict, SegMST, SegmentPairs, SegmentPairAffinities
 export Timg, Tseg, Tsgm, Tec, Tecs
@@ -29,3 +30,5 @@ typealias Timg  EMImage
 typealias Tseg  Segmentation
 typealias Taff  AffinityMap
 typealias Tsgm  SegMST
+
+end # end of module
