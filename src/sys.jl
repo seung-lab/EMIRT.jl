@@ -1,3 +1,5 @@
+module Sys
+
 export cleardir, memory
 
 """
@@ -8,3 +10,5 @@ function cleardir(dir::AbstractString)
         rm(joinpath(dir, fname), recursive=true)
     end
 end
+
+end # end of module

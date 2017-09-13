@@ -1,8 +1,8 @@
-# require("types.jl")
+module Images
 
-export normalize, normalize_serial, image2mask
-
-using Base.Threads
+using ..Types
+using ..Domains
+export normalize2d, normalize_serial, image2mask
 
 """
 2D normalization.
@@ -11,11 +11,11 @@ I = (I - mean(I)) ./ std(I)
 
 I is a 2D section.
 """
-function normalize( img::EMImage )
+function normalize2d( img::EMImage )
     sx,sy,sz = size(img)
     ret = Array(Float32, (sx,sy,sz))
     gc_enable(false)
-    @threads for z in 1:sz
+    Threads.@threads for z in 1:sz
         ret[:,:,z] = Array{Float32, 2}(img[:,:,z]) ./ 256f0
         ret[:,:,z] = (ret[:,:,z].-mean(ret[:,:,z])) ./ std(ret[:,:,z])
     end
@@ -23,7 +23,7 @@ function normalize( img::EMImage )
     ret
 end
 
-function normalize_serial( img::EMImage )
+function normalize2d_serial( img::EMImage )
     sx,sy,sz = size(img)
     ret = zeros(Float32, (sx,sy,sz))
     for z in 1:sz
@@ -88,3 +88,5 @@ function _sizefilter!(mask::BitArray{2}; sizeThreshold::UInt32=UInt32(400))
         end
     end
 end
+
+end # end of module

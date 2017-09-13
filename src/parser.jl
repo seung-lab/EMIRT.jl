@@ -1,3 +1,5 @@
+module Parser
+using ..Types
 export autoparse, configparser, argparser!, shareprms!
 
 function str2list(s, splitter=";")
@@ -160,3 +162,5 @@ function shareprms!(pd::ParamDict, gnkey::Symbol=:gn, is_keep=true)
     end
     return pd
 end
+
+end # end of module

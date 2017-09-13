@@ -1,10 +1,12 @@
+module Evaluate
+
 using HDF5
+using ..Types
+using ..AffinityMaps 
+using ..Segmentations 
+using ..Domains
 
 export evaluate, evaluate_by_patch
-
-# require("affinitymap.jl")
-# require("segmentation.jl")
-# require("domains.jl")
 
 # use a log version which is faster and more accurate
 import Base.Math.JuliaLibm.log
@@ -196,3 +198,5 @@ function evaluate_by_patch(seg_in, lbl_in, ptsz=[100,100,1], step=[100,100,1])
     end
     return ret
 end
+
+end # end of module

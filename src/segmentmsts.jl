@@ -1,6 +1,7 @@
-# require("types.jl")
-# require("evaluate.jl")
-# require("errorcurve.jl")
+module SegmentMSTs
+using ..Types
+using ..Evaluate
+
 using Base.Threads
 
 export segment, segment!, sgm2error, sgm2ec
@@ -104,3 +105,5 @@ function sgm2ec(sgm::SegMST, lbl::Segmentation, thds = 0:0.1:1)
     end
     ec
 end
+
+end # end of module

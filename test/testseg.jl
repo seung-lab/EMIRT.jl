@@ -1,12 +1,15 @@
 using EMIRT
-info("--------- test segmentation ---------")
+using EMIRT.Segmentations
+using Base.Test
+
+@testset "test segmentations" begin
 
 println("test segmentation downsampling")
 a = reshape(Vector{UInt32}(1:27), (3,3,3))
 b = downsample(a; scale=[3,3,3])
 @show a
 @show b
-@assert size(b) == (1,1,1) && b[1] == 0x0000000e
+@test size(b) == (1,1,1) && b[1] == 0x0000000e
 
 
 println("create random segmentation for tests")
@@ -41,8 +44,8 @@ println("test modified serial version ...")
 # @assert all(seg2 .== seg3)
 
 println("test mask singletons ...")
-EMIRT.singleton2boundary!(seg)
-EMIRT.singleton2boundary!(seg, seg)
+singleton2boundary!(seg)
+singleton2boundary!(seg, seg)
 
 # test mask singleton code
 println("test removing singletons by masking ...")
@@ -69,6 +72,6 @@ end
 
 @time ret1 = parallel_threshold(seg)
 @time ret2 = serial_threshold(seg)
-@assert all(ret1 .== ret2)
+@test all(ret1 .== ret2)
 
-
+end # end of test set
