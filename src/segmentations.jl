@@ -16,7 +16,7 @@ const NORMED8_ONE   = Normed{UInt8,8}(1.0)
 """
 construct affinity map from segmentation
 """
-function seg2aff{T}(seg::Array{T,3})
+function seg2aff(seg::Array{T,3}) where T
   aff = zeros(Float32, (size(seg)..., 3))
   aff[2:end, :,:,1] = (seg[2:end, :,:] .== seg[1:end-1, :,:])
   aff[:, 2:end,:,2] = (seg[:, 2:end,:] .== seg[:, 1:end-1,:])
@@ -30,13 +30,13 @@ use original segmentation as mask to lable boundary
 some singletons could be created by cropping margins,
 this protected the marginal singletons.
 """
-function singleton2boundary!{T}( seg::Array{T,3}, ref::Array{T,3} )
+function singleton2boundary!( seg::Array{T,3}, ref::Array{T,3} ) where T
     Threads.@threads for i in eachindex(seg)
-        seg[i] = ref[i]>0x00000000? seg[i]:0x00000000
+        seg[i] = ref[i]>0x00000000 ? seg[i] : 0x00000000
     end
 end
 
-function singleton2boundary!{T}( seg::Array{T,3} )
+function singleton2boundary!( seg::Array{T,3} ) where T
 
     # a flag array indicating whether it is segment
     flg = falses(seg)
@@ -82,7 +82,7 @@ end
 # relabel the segment according to connectivity
 # where N is the total number of segments
 # Note that this is different from relabel1N in segerror package, which relabeles in 2D and labeled the segment ID to 1-N, where N is the total number of segments.
-function relabel_seg{T}( seg::Array{T,3} )
+function relabel_seg( seg::Array{T,3} ) where T
     N = length(seg)
     X,Y,Z = size(seg)
     X = T(X);   Y = T(Y);   Z = T(Z);
@@ -154,7 +154,7 @@ function relabel_seg{T}( seg::Array{T,3} )
 end
 
 # reassign segment ID as 1-N
-function segid1N!{T}( seg::Array{T,3} )
+function segid1N!( seg::Array{T,3} ) where T
     # dictionary of ids
     did = Dict{T, T}(T(0)=>T(0))
     sizehint!(did, div(length(seg),16))
@@ -232,7 +232,7 @@ end
 ==#
 
 # add boundary between contacting segments
-function add_lbl_boundary!{T}(seg::Array{T,3}, conn=8)
+function add_lbl_boundary!(seg::Array{T,3}, conn=8) where T
     # neighborhood definition
     @assert conn==8 || conn==4
     sx,sy,sz = size(seg)
@@ -301,7 +301,7 @@ seg: a segmentation or label of image volume
 Outputs:
 dms: domains for fast union-find algorithm defined in "domains.jl"
 """
-function segmentation2domains{T}(seg::Array{T,3}; is_merge = true)
+function segmentation2domains(seg::Array{T,3}; is_merge = true) where T
     # initialize a domain as singletons
     @assert ndims(seg)==2 || ndims(seg)==3
     dms = Tdomains( length(seg) )
@@ -391,9 +391,9 @@ alpha2: the alpha value of the segmentation
 Outputs:
 ret: composited RGBA image array
 """
-function seg_overlay_img{Ts}(img::Array{UInt8, 3}, seg::Array{Ts,3};
-                                alpha1::Normed = NORMED8_HALF,
-                                alpha2::Normed = NORMED8_HALF )
+function seg_overlay_img(img::Array{UInt8, 3}, seg::Array{Ts,3};
+                            alpha1::Normed = NORMED8_HALF,
+                            alpha2::Normed = NORMED8_HALF ) where Ts
     @assert size(img)==size(seg)
     @assert alpha1>0.0f0 && alpha1<1.0f0
     @assert alpha2>0.0f0 && alpha2<1.0f0

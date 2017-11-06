@@ -2,7 +2,7 @@ module Domains
 
 export Tdjsets, find!, union!, setallroot!, Tdomains
 
-type Tdjsets
+mutable struct Tdjsets
     sets::Vector{UInt32}
     setsz::Vector{UInt32}
 end
@@ -70,7 +70,7 @@ end
 # size of each label in a domain
 # key is the label id in ground truth
 # value is the number of voxels in that label
-typealias Tdlsz Dict{UInt32,UInt32}
+const Tdlsz = Dict{UInt32,UInt32}
 
 """
 compare two domain label sizes to get the number of same voxel pair and different voxel pair
@@ -112,9 +112,9 @@ function union!( dlsz1::Tdlsz, dlsz2::Tdlsz )
 end
 
 # list of dictionary, each represents the label sizes
-typealias Tdlszes Array{Tdlsz,1}
+const Tdlszes = Array{Tdlsz,1}
 
-type Tdomains
+mutable struct Tdomains
     # domain label sizes
     dlszes::Tdlszes
     # disjoint sets
@@ -122,7 +122,7 @@ type Tdomains
 end
 
 # constructor function
-function Tdomains{T}(seg::Array{T,3})
+function Tdomains(seg::Array{T,3}) where T
     # number of voxels
     N = T( length(seg) )
     # initialize the disjoint sets
