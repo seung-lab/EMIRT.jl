@@ -4,7 +4,6 @@ using ..Domains
 using ..Segmentations
 
 export aff2seg, exchangeaffxz!, aff2uniform, gaff2saff, aff2edgelist
-export downsample 
 export maskaff!, mask_margin!
 
 function downsample(aff::AffinityMap; scale::Union{Vector, Tuple} = (2,2,1,1))
