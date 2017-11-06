@@ -161,7 +161,7 @@ end
 """
 transfer affinity map to edge list
 """
-function aff2edgelist{T}(aff::Array{T,4}; is_sort::Bool=true)
+function aff2edgelist(aff::Array{T,4}; is_sort::Bool=true) where T
     # initialize the edge list
     elst = Array{Tuple{Float32,UInt32,UInt32},1}([])
     sizehint!(elst, div(length(aff),3))
