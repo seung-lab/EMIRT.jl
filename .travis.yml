@@ -2,11 +2,15 @@ language: julia
 os: linux
 
 julia:
-        - 0.6
+    - 0.6
+    - nightly
+
 notifications:
         email: false
 git:
     depth: 999999
 
+install:
+    - sudo apt-get install -y -qq hdf5-tools
 script:
-        - julia -e 'Pkg.clone(pwd()); Pkg.test("EMIRT")'
+    - julia -e 'Pkg.clone(pwd()); Pkg.test("EMIRT")'
