@@ -1,5 +1,5 @@
 using EMIRT
-using EMIRT.SegmentMST
+using EMIRT.SegmentMSTs
 using EMIRT.IOs
 using Watershed
 using Base.Test
