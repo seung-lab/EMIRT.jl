@@ -2,7 +2,7 @@ using EMIRT
 using EMIRT.SegmentMSTs
 using EMIRT.IOs
 using Watershed
-using Base.Test
+using Test
 
 @testset "test segmentation with mst" begin 
 aff = readaff(joinpath(dirname(@__FILE__),"../assets/piriform.aff.h5"))
