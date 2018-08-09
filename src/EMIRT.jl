@@ -1,4 +1,4 @@
-nothingmodule EMIRT
+module EMIRT
 include("types.jl")
 include("ios.jl")
 include("Domains.jl")

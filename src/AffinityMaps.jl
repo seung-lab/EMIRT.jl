@@ -32,7 +32,7 @@ function gaff2saff( gaff::Array{Float32,3} )
     saff = reshape(gaff, (sx,sy,Int64(sz/3),Int64(3)));
 
     # transform the x y and z channel
-    ret = zeros(saff)
+    ret = zeros(size(saff))
     ret[2:end,:,:, 1] = saff[1:end-1,:,:, 1]
     ret[:,2:end,:, 2] = saff[:,1:end-1,:, 2]
     ret[:,:,2:end, 3] = saff[:,:,1:end-1, 3]
@@ -137,7 +137,7 @@ function aff2uniform(aff, alg=QuickSort)
     print("get the permutation by sorting......")
     @time p = sortperm(aff[:], alg=alg)
     println("done :)")
-    q = zeros(p)
+    q = zeros(eltype(p), size(p))
     q[p[1:N]] = 1:N
 
     # generating values

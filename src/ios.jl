@@ -120,7 +120,7 @@ function readseg(fseg::AbstractString)
             for z in 1:sz
                 tmp = reinterpret(UInt8, load(files[z]).data)
                 tmp = Array{UInt32, 3}(tmp)
-                im = tmp[1,:,:].*256.*256 + tmp[2,:,:].*256 + tmp[3,:,:]
+                im = tmp[1,:,:].*(256 * 256) + tmp[2,:,:].*256 + tmp[3,:,:]
                 seg[:,:,z] = reshape(im,(sx,sy))
             end
         else
@@ -150,7 +150,7 @@ function readseg(fseg::AbstractString)
             tmp = reinterpret(UInt8,image.data)
             tmp = Array{UInt32, 4}(tmp)
             sc,sx,sy,sz = size(tmp)
-            seg = tmp[1,:,:,:].*256.*256 + tmp[2,:,:,:].*256 + tmp[3,:,:,:]
+            seg = tmp[1,:,:,:].*(256*256) + tmp[2,:,:,:].*256 + tmp[3,:,:,:]
             seg = reshape(seg, (sx,sy,sz))
         else
             seg = reinterpret(UInt32, image.data)

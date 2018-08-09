@@ -39,7 +39,7 @@ end
 function singleton2boundary!( seg::Array{T,3} ) where T
 
     # a flag array indicating whether it is segment
-    flg = falses(seg)
+    flg = falses(size(seg))
     # size
     X,Y,Z = size(seg)
 
