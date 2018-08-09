@@ -1,6 +1,4 @@
-VERSION >=v"0.5.0" && __precompile__()
-
-module EMIRT
+nothingmodule EMIRT
 include("types.jl")
 include("ios.jl")
 include("Domains.jl")

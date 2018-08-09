@@ -1,6 +1,6 @@
 using EMIRT 
 using EMIRT.Images 
-using Base.Test
+using Test
 
 @testset "test image" begin
     img = rand(UInt8, 128,128,256)

@@ -9,7 +9,7 @@ export maskaff!, mask_margin!
 function downsample(aff::AffinityMap; scale::Union{Vector, Tuple} = (2,2,1,1))
     println("downsampling affinitymap with averaging")
     outSize = map(div, size(aff), scale)
-    out = similar(aff, (outSize...)) 
+    out = similar(aff, (outSize...,)) 
     for z in 1:outSize[3]
         for y in 1:outSize[2]
             for x in 1:outSize[1]
@@ -141,7 +141,7 @@ function aff2uniform(aff, alg=QuickSort)
     q[p[1:N]] = 1:N
 
     # generating values
-    v = linspace(0, 1, N)
+    v = range(0, stop=1, length=N)
     # making new array
     v = v[q]
     v = reshape(v, sz)

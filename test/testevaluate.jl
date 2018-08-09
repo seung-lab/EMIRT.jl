@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 # test the seg error functions
 using EMIRT
 using EMIRT.Evaluate
