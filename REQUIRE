@@ -1,5 +1,4 @@
 julia 0.7
-Distributed
 HDF5
 FileIO
 Colors
