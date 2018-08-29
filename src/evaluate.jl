@@ -9,7 +9,6 @@ using ..Domains
 export evaluate, evaluate_by_patch
 
 # use a log version which is faster and more accurate
-import Base.Math.JuliaLibm.log
 
 function evaluate(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=true)
     ret = Dict{Symbol, Float32}()

@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using EMIRT
 using EMIRT.IOs
 @testset "test IO" begin

@@ -1,6 +1,6 @@
 using EMIRT
 using EMIRT.Segmentations
-using Base.Test
+using Test
 
 @testset "test segmentations" begin
 
