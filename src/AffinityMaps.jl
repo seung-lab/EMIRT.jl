@@ -9,7 +9,7 @@ export maskaff!, mask_margin!
 function downsample(aff::AffinityMap; scale::Union{Vector, Tuple} = (2,2,1,1))
     println("downsampling affinitymap with averaging")
     outSize = map(div, size(aff), scale)
-    out = similar(aff, (outSize...)) 
+    out = similar(aff, (outSize...,)) 
     for z in 1:outSize[3]
         for y in 1:outSize[2]
             for x in 1:outSize[1]
@@ -32,7 +32,7 @@ function gaff2saff( gaff::Array{Float32,3} )
     saff = reshape(gaff, (sx,sy,Int64(sz/3),Int64(3)));
 
     # transform the x y and z channel
-    ret = zeros(saff)
+    ret = zeros(size(saff))
     ret[2:end,:,:, 1] = saff[1:end-1,:,:, 1]
     ret[:,2:end,:, 2] = saff[:,1:end-1,:, 2]
     ret[:,:,2:end, 3] = saff[:,:,1:end-1, 3]
@@ -137,11 +137,11 @@ function aff2uniform(aff, alg=QuickSort)
     print("get the permutation by sorting......")
     @time p = sortperm(aff[:], alg=alg)
     println("done :)")
-    q = zeros(p)
+    q = zeros(eltype(p), size(p))
     q[p[1:N]] = 1:N
 
     # generating values
-    v = linspace(0, 1, N)
+    v = range(0, stop=1, length=N)
     # making new array
     v = v[q]
     v = reshape(v, sz)

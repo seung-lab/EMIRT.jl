@@ -21,7 +21,7 @@ judec = evaluate(seg, lbl)
 @show ecd
 @test abs(ecd[:rf]-1) < 0.01
 
-seg = Array{UInt32,3}(reshape(range(1,length(lbl)), size(lbl)))
+seg = Array{UInt32,3}(reshape(range(1,length=length(lbl)), size(lbl)))
 @time ecd = evaluate(seg,lbl)
 @show ecd
 @test abs(ecd[:rf]-0) < 0.01

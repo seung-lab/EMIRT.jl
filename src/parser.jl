@@ -28,11 +28,11 @@ function autoparse(s)
         return true
     elseif s=="no" || s=="No" || s=="n" || s=="N" || s=="false" || s=="False"
         return false
-    elseif contains(s, "/") || ismatch(r"^[A-z]", s) || typeof(parse(s))==Symbol || typeof(parse(s)) == Expr
+    elseif contains(s, "/") || occursin(r"^[A-z]", s) || typeof(Meta.parse(s))==Symbol || typeof(Meta.parse(s)) == Expr
         # directory or containing alphabet not all number
         return s
     else
-        return parse(s)
+        return Meta.parse(s)
     end
 end
 
@@ -65,14 +65,14 @@ function configparser(lines::Vector)
         # remove space and \n
         l = replace(l, "\n", "")
         l = replace(l, " ", "")
-        if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
+        if occursin(r"^\s*#", l) || occursin(r"^\s*\n", l)
             continue
-        elseif ismatch(r"^\s*\[.*\]", l)
+        elseif occursin(r"^\s*\[.*\]", l)
             # update the section name
             m = match(r"\[.*\]", l)
             sec = Symbol( m.match[2:end-1] )
             pd[sec] = Dict()
-        elseif ismatch(r"^\s*.*\s*=", l)
+        elseif occursin(r"^\s*.*\s*=", l)
             k, v = split(l, '=')
             k = Symbol(k)
             # assign value to dictionary
@@ -102,14 +102,14 @@ function dagparser(lines::Vector)
         # remove space and \n
         l = replace(l, "\n", "")
         l = replace(l, " ", "")
-        if ismatch(r"^\s*#", l) || ismatch(r"^\s*\n", l)
+        if occursin(r"^\s*#", l) || occursin(r"^\s*\n", l)
             continue
-        elseif ismatch(r"^\s*\[.*\]", l)
+        elseif occursin(r"^\s*\[.*\]", l)
             # update the section name
             m = match(r"\[.*\]", l)
             sec = Symbol( m.match[2:end-1] )
             pd[sec] = Dict()
-        elseif ismatch(r"^\s*.*\s*=", l)
+        elseif occursin(r"^\s*.*\s*=", l)
             k, v = split(l, '=')
             k = Symbol(k)
             # assign value to dictionary

@@ -5,10 +5,9 @@ using ..Types
 using ..AffinityMaps 
 using ..Segmentations 
 using ..Domains
+using Distributed 
 
 export evaluate, evaluate_by_patch
-
-# use a log version which is faster and more accurate
 
 function evaluate(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=true)
     ret = Dict{Symbol, Float32}()
@@ -55,8 +54,8 @@ function evaluate(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=tr
         Np = N*N/2
 
         # information theory metrics
-        HS = - sum( pmap(x->x/N*log(x/N), values(si)) )
-        HT = - sum( pmap(x->x/N*log(x/N), values(li)) )
+        HS = - sum( pmap(x->x/N*Base.log(x/N), values(si)) )
+        HT = - sum( pmap(x->x/N*Base.log(x/N), values(li)) )
         HST = Float32(0)
         HTS = Float32(0)
         IST = Float32(0)
@@ -76,9 +75,9 @@ function evaluate(seg::Array, lbl::Array, is_fr::Bool=true, is_selfpair::Bool=tr
         for ((i::UInt32, j::UInt32),v::Float32) in om
             # segment id pair
             pij = v / N
-            HTS -= pij * log( v / si[i] )
-            HST -= pij * log( v / li[j] )
-            IST += pij * log( v * N / (si[i] * li[j]) )
+            HTS -= pij * Base.log( v / si[i] )
+            HST -= pij * Base.log( v / li[j] )
+            IST += pij * Base.log( v * N / (si[i] * li[j]) )
         end
         ret[:VI] = HS + HT - 2*IST
         ret[:VIs] = HST

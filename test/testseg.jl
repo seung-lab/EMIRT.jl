@@ -7,8 +7,6 @@ using Test
 println("test segmentation downsampling")
 a = reshape(Vector{UInt32}(1:27), (3,3,3))
 b = downsample(a; scale=[3,3,3])
-@show a
-@show b
 @test size(b) == (1,1,1) && b[1] == 0x0000000e
 
 
