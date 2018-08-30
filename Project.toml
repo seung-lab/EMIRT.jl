@@ -1,0 +1,14 @@
+name = "EMIRT"
+version = "0.7.0"
+
+[deps]
+HDF5
+FileIO
+Colors
+FixedPointNumbers 
+
+[extras]
+Test 
+
+[targets]
+test = ["Test"] 
