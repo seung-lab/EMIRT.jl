@@ -7,11 +7,17 @@ julia:
     - nightly
 
 notifications:
-        email: false
-git:
-    depth: 999999
+    email: false
+
+matrix:
+    allow_failures:
+        julia: nightly 
+
 
 install:
     - sudo apt-get install -y -qq hdf5-tools
 script:
-    - julia -e 'import Pkg; Pkg.develop(pwd()); Pkg.test("EMIRT")'
+    - julia -e 'import Pkg; Pkg.build(); Pkg.test(; coverage=true)'
+    
+after_success:
+    - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Coverall.submit(process_folder())'
